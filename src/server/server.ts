@@ -1,11 +1,14 @@
 import dashboard from "../dashboard/index.html";
+import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "../mjpeg.ts";
 import { listSimulators, type Simulator } from "../simulators.ts";
 import { VERSION } from "../version.ts";
-import { Helpers, helperStreamUrl } from "./helpers.ts";
-import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "./mjpeg.ts";
+import { type Helper, Helpers, helperStreamUrl } from "./helpers.ts";
+import { log } from "./log.ts";
 
 /** Thumbnails are small, so a few frames a second looks live without sending full-speed video. */
 const THUMBNAIL_FPS = 5;
+/** How long to wait for a helper to start answering a stream request. */
+const CONNECT_TIMEOUT_MS = 5000;
 
 export type Health = {
   name: "simple";
@@ -48,17 +51,26 @@ export function startServer(port: number) {
         if (simulator.state !== "running")
           return errorResponse(409, "That simulator isn't running.");
 
-        const helper = await helpers.acquire(simulator);
+        let helper: Helper;
+        try {
+          helper = await helpers.acquire(simulator);
+        } catch (error) {
+          return errorResponse(502, error);
+        }
         const upstreamAbort = new AbortController();
+        const connectTimer = setTimeout(() => upstreamAbort.abort(), CONNECT_TIMEOUT_MS);
         let upstream: Response;
         try {
           upstream = await fetch(helperStreamUrl(helper), { signal: upstreamAbort.signal });
           if (!upstream.ok || !upstream.body)
             throw new Error(`serve-sim answered ${upstream.status}`);
         } catch (error) {
+          log(`couldn't stream ${simulator.name} (${simulator.udid}): ${String(error)}`);
           helpers.release(simulator.udid);
           helpers.forget(simulator.udid);
           return errorResponse(502, error);
+        } finally {
+          clearTimeout(connectTimer);
         }
 
         const body = throttledMjpeg(readMjpegFrames(upstream.body), THUMBNAIL_FPS, () => {

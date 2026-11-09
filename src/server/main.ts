@@ -1,5 +1,6 @@
 import { serverPort } from "../paths.ts";
 import { VERSION } from "../version.ts";
+import { log } from "./log.ts";
 import { startServer } from "./server.ts";
 
 /** Runs the server in the foreground until it's told to stop. */
@@ -17,8 +18,4 @@ export function runServer(): void {
   };
   process.on("SIGTERM", () => void stop("SIGTERM"));
   process.on("SIGINT", () => void stop("SIGINT"));
-}
-
-function log(message: string): void {
-  console.log(`${new Date().toISOString()} ${message}`);
 }

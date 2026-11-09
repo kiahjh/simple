@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readMjpegFrames } from "../mjpeg.ts";
 import type { Health, SimulatorsResponse } from "../server/server.ts";
 import type { Group, Simulator } from "../simulators.ts";
 
@@ -95,17 +96,62 @@ function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
   );
 }
 
-/** A live, low-frame-rate view of the simulator's screen. */
+/**
+ * A live, low-frame-rate view of the simulator's screen. Reads the stream itself rather than using an
+ * `<img src>` for it, because browsers silently stop updating an image stream that ends (for example when the
+ * simulator restarts). This notices the end and reconnects.
+ */
 function Thumbnail({ udid, name }: { udid: string; name: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <span className="muted">No preview available</span>;
+  const [src, setSrc] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    let stopped = false;
+    let abort: AbortController | null = null;
+    // Keep the shown frame's URL and the one before it; older ones are revoked.
+    const urls: string[] = [];
+
+    const run = async () => {
+      let delay = 1000;
+      while (!stopped) {
+        abort = new AbortController();
+        try {
+          const res = await fetch(`/api/simulators/${udid}/thumbnail`, { signal: abort.signal });
+          if (!res.ok || !res.body) throw new Error(`thumbnail answered ${res.status}`);
+          for await (const frame of readMjpegFrames(res.body)) {
+            if (stopped) break;
+            const url = URL.createObjectURL(
+              new Blob([frame as Uint8Array<ArrayBuffer>], { type: "image/jpeg" }),
+            );
+            urls.push(url);
+            while (urls.length > 2) URL.revokeObjectURL(urls.shift() as string);
+            setSrc(url);
+            setLive(true);
+            delay = 1000;
+          }
+        } catch {
+          // Fall through to reconnecting.
+        }
+        if (stopped) break;
+        setLive(false);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay = Math.min(delay * 2, 10_000);
+      }
+    };
+    run();
+
+    return () => {
+      stopped = true;
+      abort?.abort();
+      for (const url of urls) URL.revokeObjectURL(url);
+    };
+  }, [udid]);
+
   return (
-    <img
-      className="screen"
-      src={`/api/simulators/${udid}/thumbnail`}
-      alt={`${name}'s screen`}
-      onError={() => setFailed(true)}
-    />
+    <>
+      {src && <img className="screen" src={src} alt={`${name}'s screen`} />}
+      {!live && <span className="badge">{src ? "Reconnecting…" : "Connecting…"}</span>}
+    </>
   );
 }
 

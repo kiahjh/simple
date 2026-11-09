@@ -141,6 +141,12 @@ Steps, each committed separately:
      runtime), stop 60 s after the last viewer disconnects (verified), stop when their simulator stops running
      (checked on each list refresh), and stop with the server. Helpers someone else started are never stopped.
    - serve-sim also serves `/foreground` (the app in front) and `/config` per helper; useful later.
+   - Bug found on the real dashboard (Duo thumbnail blank): two cards starting helpers at the same moment ran two
+     `serve-sim --detach` at once, both picked port 3100, and the second failed ("Port 3100 is already in use") or
+     hung. Fixed by starting helpers one at a time. Worth reporting upstream to serve-sim.
+   - Also: browsers silently stop updating an `<img>` MJPEG stream that ends, so the dashboard reads the stream
+     with `fetch` and reconnects (1 s, doubling to 10 s). serve-sim commands time out after 20 s, stream connects
+     after 5 s, and failures go to `server.log`.
    - Before distributing a compiled binary: it must ship serve-sim and needs Node on the machine.
 4. Clicking a card opens serve-sim's full interactive view.
 5. Release prep: restart an outdated server automatically, then tag `v0.1.0-alpha.1` with a GitHub Release.

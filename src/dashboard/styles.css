@@ -117,6 +117,15 @@ h2 {
   box-sizing: border-box;
 }
 
+.badge {
+  position: relative;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
 .details {
   display: grid;
   gap: 4px;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mjpegPart, readMjpegFrames, throttledMjpeg } from "../src/server/mjpeg.ts";
+import { mjpegPart, readMjpegFrames, throttledMjpeg } from "../src/mjpeg.ts";
 
 /** A fake frame whose bytes include things a naive parser might mistake for boundaries. */
 function frame(n: number): Uint8Array {

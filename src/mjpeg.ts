@@ -15,19 +15,28 @@ export async function* readMjpegFrames(
   stream: ReadableStream<Uint8Array>,
 ): AsyncGenerator<Uint8Array> {
   let buffer: Uint8Array = new Uint8Array(0);
-  for await (const chunk of stream) {
-    buffer = concat(buffer, chunk);
+  // A reader loop rather than `for await`, so this also runs in browsers without stream async iteration.
+  const reader = stream.getReader();
+  try {
     while (true) {
-      const headerEnd = indexOf(buffer, HEADER_END);
-      if (headerEnd === -1) break;
-      const headers = decoder.decode(buffer.subarray(0, headerEnd));
-      const length = Number(/content-length:\s*(\d+)/i.exec(headers)?.[1]);
-      if (!Number.isFinite(length)) throw new Error("MJPEG part without a Content-Length header");
-      const start = headerEnd + HEADER_END.length;
-      if (buffer.length < start + length) break;
-      yield buffer.slice(start, start + length);
-      buffer = buffer.subarray(start + length);
+      const { done, value: chunk } = await reader.read();
+      if (done) return;
+      buffer = concat(buffer, chunk);
+      while (true) {
+        const headerEnd = indexOf(buffer, HEADER_END);
+        if (headerEnd === -1) break;
+        const headers = decoder.decode(buffer.subarray(0, headerEnd));
+        const length = Number(/content-length:\s*(\d+)/i.exec(headers)?.[1]);
+        if (!Number.isFinite(length)) throw new Error("MJPEG part without a Content-Length header");
+        const start = headerEnd + HEADER_END.length;
+        if (buffer.length < start + length) break;
+        yield buffer.slice(start, start + length);
+        buffer = buffer.subarray(start + length);
+      }
     }
+  } finally {
+    // Cancelling (rather than only releasing) tells the source we're done, e.g. aborting a fetch.
+    await reader.cancel().catch(() => {});
   }
 }
 
