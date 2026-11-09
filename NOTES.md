@@ -15,6 +15,17 @@ Open source from the start, MIT licensed.
 - Progressive disclosure: `simple` alone shows status; a handful of common verbs; anything else passes through to
   serve-sim / simctl.
 
+## Versions and releases (agreed)
+
+- Semantic versioning, starting in `0.x`. Pre-releases for early builds: `0.1.0-alpha.1`, `0.1.0-alpha.2`, …,
+  `0.1.0-beta.1`, `0.1.0`. `1.0.0` is for when strangers can depend on it.
+- Every release is a git tag (`v0.1.0-alpha.1`) with a GitHub Release. Alphas and betas are marked as pre-releases.
+- `CHANGELOG.md` has an "Unreleased" section that each change adds to; it becomes the release notes.
+- Decide later: how people install it, and a GitHub Action that builds and publishes on tag push (set up before
+  the first alpha).
+- First release, `0.1.0-alpha.1`: read-only `simple status` plus a dashboard listing every simulator with a live
+  thumbnail and its owner.
+
 ## Trial, Nov 9 2026 (Xcode 27.1 beta, serve-sim 0.1.49, AXe 1.8.0)
 
 Setup: a separate device set (`simctl --set`) with an iPhone Duo (iOS 27.1) and iPad Pro 13" M5 (iOS 27.0), Gertrude
@@ -51,5 +62,4 @@ AXe (not adopting):
 
 ## Next decision
 
-What version one is. Suggestion: `simple status` plus a dashboard listing every simulator with a live thumbnail
-and its owner. No interaction or toolchains yet.
+The language and stack.
