@@ -1,0 +1,71 @@
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import pkg from "../package.json" with { type: "json" };
+
+const home = mkdtempSync(join(tmpdir(), "simple-test-"));
+const port = 47000 + Math.floor(Math.random() * 1000);
+const env = { ...process.env, SIMPLE_HOME: home, SIMPLE_PORT: String(port) };
+const base = `http://127.0.0.1:${port}`;
+
+function simple(...args: string[]) {
+  const result = Bun.spawnSync([process.execPath, "src/cli/main.ts", ...args], { env });
+  return {
+    code: result.exitCode,
+    stdout: result.stdout.toString().trim(),
+    stderr: result.stderr.toString().trim(),
+  };
+}
+
+afterAll(() => {
+  simple("server", "stop");
+  rmSync(home, { recursive: true, force: true });
+});
+
+describe("cli", () => {
+  test("--version prints the package version", () => {
+    expect(simple("--version")).toMatchObject({ code: 0, stdout: pkg.version });
+  });
+
+  test("--help and no arguments print usage", () => {
+    expect(simple("--help").stdout).toContain("Usage:");
+    expect(simple().stdout).toContain("Usage:");
+  });
+
+  test("unknown commands and options are usage errors", () => {
+    expect(simple("nope")).toMatchObject({ code: 2 });
+    expect(simple("--nope")).toMatchObject({ code: 2 });
+  });
+});
+
+describe("background server", () => {
+  test("dashboard starts the server and serves the page", async () => {
+    expect(simple("server", "status").stdout).toBe("not running");
+
+    const result = simple("dashboard");
+    expect(result).toMatchObject({ code: 0, stdout: `http://localhost:${port}` });
+    expect(simple("server", "status").stdout).toStartWith(`running: version ${pkg.version}`);
+
+    const health = await (await fetch(`${base}/api/health`)).json();
+    expect(health).toMatchObject({ name: "simple", version: pkg.version });
+
+    const html = await (await fetch(`${base}/`)).text();
+    expect(html).toContain('<div id="root">');
+    const script = html.match(/<script[^>]+src="([^"]+)"/)?.[1];
+    expect(script).toBeDefined();
+    expect((await fetch(`${base}${script}`)).status).toBe(200);
+  });
+
+  test("dashboard reuses a running server", () => {
+    const before = simple("server", "status").stdout;
+    simple("dashboard");
+    expect(simple("server", "status").stdout).toBe(before);
+  });
+
+  test("server stop stops it", async () => {
+    expect(simple("server", "stop").stdout).toBe("stopped");
+    expect(simple("server", "status").stdout).toBe("not running");
+    expect(simple("server", "stop").stdout).toBe("not running");
+  });
+});

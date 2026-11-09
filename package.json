@@ -1,0 +1,30 @@
+{
+  "name": "simple",
+  "version": "0.0.0",
+  "description": "Simulator tooling for people and agents, together.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "simple": "src/cli/main.ts"
+  },
+  "scripts": {
+    "simple": "bun src/cli/main.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "check": "bun run typecheck && bun run lint && bun test"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

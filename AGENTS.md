@@ -1,0 +1,4 @@
+- Decisions and their reasons live in `NOTES.md`. Read it first; update it when a decision changes.
+- Run `bun run check` before saying something works. `bun run format` fixes formatting.
+- Add user-facing changes to the "Unreleased" section of `CHANGELOG.md`.
+- Never touch the user's own simulators (Xcode's default device set) in tests or experiments.

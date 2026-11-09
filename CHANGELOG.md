@@ -6,4 +6,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-- Added the MIT license.
+- `simple dashboard` starts a background server if needed and prints the dashboard's address; `--open` opens it.
+- `simple server status` and `simple server stop` show and stop the background server.
+- `simple --help` and `simple --version`.

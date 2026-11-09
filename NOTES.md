@@ -32,6 +32,7 @@ Setup: a separate device set (`simctl --set`) with an iPhone Duo (iOS 27.1) and 
 Music installed on both.
 
 serve-sim:
+
 - Separate device set works everywhere (`--device-set`). Booting, installing, launching: no windows, Device Hub
   never opened, nothing took focus.
 - Live MJPEG stream per device; preview page at `localhost:3200`. Never opens a browser on its own.
@@ -46,6 +47,7 @@ serve-sim:
   lifecycle.
 
 AXe (not adopting):
+
 - No way to target a separate device set, so it can't work with agent-owned simulators.
 - Unfolded Duo: screenshot came out solid black (captures the off outer panel) and `tap --label` missed.
 - `tap --label` is nice on normal screens; first call per device timed out once while connecting.
@@ -85,6 +87,19 @@ AXe (not adopting):
     owners yet.
   - `0.1.0-alpha.2`: `simple claim` / `simple release`, so owners become per-session.
 
-## Next decision
+## Skeleton (agreed)
 
-Project scaffolding.
+- One package: `src/cli` (the `simple` command), `src/server` (background server), `src/dashboard` (React page,
+  bundled by Bun's HTML imports; no Vite). Plain CSS.
+- Argument parsing with the built-in `parseArgs`.
+- The first command that needs the server starts it in the background (`simple _server`, detached). Fixed port
+  `4729` on 127.0.0.1. Data in `~/Library/Application Support/simple/` (server log: `server.log`).
+  `SIMPLE_HOME` / `SIMPLE_PORT` override both, which the tests use.
+- Strict TypeScript (TS 7), Biome for formatting and linting, `bun test`. `bun run check` runs all three; the
+  `check` GitHub workflow runs it on macOS for every push and PR.
+- Checked: compiled with `bun build --compile`, the single binary (86 MB) starts and stops its own server.
+- Not handled yet: a running server from an older version isn't restarted after an upgrade.
+
+## Next step
+
+Build `0.1.0-alpha.1`: list simulators from both groups and show them on the dashboard with live thumbnails.
