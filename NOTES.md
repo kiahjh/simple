@@ -70,6 +70,21 @@ AXe (not adopting):
   Hub automation), called from the TypeScript core, as serve-sim does.
 - Not Rust: no performance need, and a third language for contributors.
 
+## Ownership (agreed)
+
+- Two groups of simulators:
+  - The person's: Xcode's default device set (what Device Hub shows).
+  - Agents': a separate device set that only `simple` manages, in its own folder.
+- Inside the agents' group, each claimed simulator records its owner: the agent session ID (OpenCode sets
+  `OPENCODE_SESSION_ID` in agent shells), the project, and when. Released when the agent is done or the session
+  ends.
+- Agents may use the person's simulators read-only by default (status, thumbnails, screenshots). Tapping, typing or
+  anything else that changes them needs an explicit flag.
+- Phasing:
+  - `0.1.0-alpha.1`: read-only. Shows both groups labeled "you" and "agents", with live thumbnails. No per-session
+    owners yet.
+  - `0.1.0-alpha.2`: `simple claim` / `simple release`, so owners become per-session.
+
 ## Next decision
 
-How simulator ownership works.
+Project scaffolding.
