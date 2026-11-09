@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] - 2026-11-09
+
+Agents get their own simulators: `simple claim` and `simple release`.
+
 - `simple claim [MODEL]` gives an agent its own booted simulator and prints its ID. MODEL is `duo`, `ipad`,
   `iphone` (the default) or a model name; `--os` picks an iOS version. Agent simulators live in Xcode's normal
   device list (named "Agent · …"), so `xcodebuild`, Xcode and the Xcode MCP can use them. An idle one is reused
@@ -35,5 +39,6 @@ The first alpha: see what simulators are running, and watch them live.
 - `simple server status` and `simple server stop` show and stop the background server.
 - `simple --help` and `simple --version`.
 
-[Unreleased]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.1...HEAD
+[Unreleased]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.2...HEAD
+[0.1.0-alpha.2]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/kiahjh/simple/releases/tag/v0.1.0-alpha.1
