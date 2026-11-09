@@ -167,6 +167,23 @@ a.thumbnail:focus-visible .open-hint {
   font-weight: 600;
 }
 
+/* Long names ("Agent · iPhone 18 Pro Max 2") get an ellipsis rather than wrapping the button. */
+.title .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.holder {
+  color: var(--muted);
+}
+
+.holder strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
 .state {
   display: flex;
   align-items: center;
@@ -234,6 +251,8 @@ a.thumbnail:focus-visible .open-hint {
   border-radius: 6px;
   padding: 2px 8px;
   cursor: pointer;
+  flex: none;
+  white-space: nowrap;
 }
 
 .copy:hover {

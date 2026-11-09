@@ -168,6 +168,21 @@ Steps, each committed separately:
    whose build ID differs from the CLI's. Costs ~30 ms per command. Released `v0.1.0-alpha.1` on Nov 9, 2026,
    installed from source.
 
+## 0.1.0-alpha.2 plan (agreed)
+
+- `simple claim [MODEL] [--os VERSION] [--json]`: reuse the caller's matching claim, else an idle agent simulator
+  of that model (erased first if used), else create "Agent · <model>" (numbered if taken). Waits until booted,
+  prints the UDID. MODEL: `duo`, `ipad`, `iphone` (default) or a model name, picking the newest match on the
+  newest installed iOS that supports it (`src/catalog.ts`).
+- Owner: `opencode:<OPENCODE_SESSION_ID>` labeled with the project folder; `--owner NAME` / `SIMPLE_OWNER`;
+  otherwise "you". Any simple command refreshes the caller's claims; they lapse after 2 hours without one.
+- `simple release [ID] [--force]`: shut down and erase, keep the simulator for reuse. Others' need `--force`.
+- Agent simulators unused for 7 days are deleted. The server tidies every minute; `simple claim` tidies too.
+- State: `<data dir>/agents.json`, changed only under a lock (a directory, stale after 60 s).
+- Measured: first claim (create + first boot) 68 s; same owner again 2 s; release 4 s; claim after a release
+  48 s, because erasing makes the next boot a first boot. Kept as is for simplicity (Nov 9, 2026). Considered
+  and declined for now: a warm, already-booted spare for ~2 s claims; skipping the erase (fast but leaks state).
+
 ## How to release
 
 1. Move the changelog's "Unreleased" entries under a new `## [x.y.z] - YYYY-MM-DD` heading, add a one-line

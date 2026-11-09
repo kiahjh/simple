@@ -59,6 +59,7 @@ function GroupSection({ title, simulators }: { title: string; simulators: Simula
                 <span className="model">{s.model}</span>
                 <span className="muted">{s.os}</span>
                 {!s.available && <span className="muted">unavailable (runtime not installed)</span>}
+                {s.group === "agents" && <Holder simulator={s} />}
                 <CopyId udid={s.udid} />
               </li>
             ))}
@@ -90,7 +91,9 @@ function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
       )}
       <div className="details">
         <div className="title">
-          <span className="name">{s.name}</span>
+          <span className="name" title={s.name}>
+            {s.name}
+          </span>
           <CopyId udid={s.udid} />
         </div>
         <div>
@@ -100,6 +103,7 @@ function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
           <span className={`dot ${s.state}`} />
           {s.state}
         </div>
+        {s.group === "agents" && <Holder simulator={s} />}
       </div>
     </article>
   );
@@ -161,6 +165,20 @@ function Thumbnail({ udid, name }: { udid: string; name: string }) {
       {src && <img className="screen" src={src} alt={`${name}'s screen`} />}
       {!live && <span className="badge">{src ? "Reconnecting…" : "Connecting…"}</span>}
     </>
+  );
+}
+
+/** Who holds an agent simulator, and since when. */
+function Holder({ simulator: s }: { simulator: Simulator }) {
+  if (!s.owner) return <span className="muted">Idle</span>;
+  const since = new Date(s.owner.since).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return (
+    <span className="holder">
+      Held by <strong>{s.owner.label}</strong> since {since}
+    </span>
   );
 }
 
