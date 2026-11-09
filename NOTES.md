@@ -3,7 +3,7 @@
 Simulator tooling that people and agents use together: agents get full control of simulators (and later
 Xcode/Swift toolchains), and the person gets a clear view of what's running and who's using it.
 
-Open source from the start (license still to decide).
+Open source from the start, MIT licensed.
 
 ## Shape (agreed)
 
