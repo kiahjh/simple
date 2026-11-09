@@ -92,9 +92,16 @@ Learned while opening an iPhone and a Duo in Device Hub on request. `prototypes/
 
 ## Ownership (agreed)
 
-- Two groups of simulators:
-  - The person's: Xcode's default device set (what Device Hub shows).
-  - Agents': a separate device set that only `simple` manages, in its own folder.
+- Two groups of simulators, both in Xcode's default device set (what Device Hub and Xcode show):
+  - The person's: everything `simple` didn't create.
+  - Agents': simulators `simple` created, named like "Agent · iPhone 18 Pro" and recorded in simple's data folder.
+    Agents only use the simulator they claimed, never the person's.
+- Changed Nov 9, 2026 (was: a separate device set for agents). `xcodebuild`, Xcode's run destinations and the
+  Xcode MCP only see the default set; no environment variable or setting changes that (checked
+  `-showdestinations` with a test simulator in a custom set). So agents couldn't `xcodebuild test` or build and
+  run through Xcode on separate-set simulators. Cost of the switch: agent simulators appear in Device Hub's
+  sidebar and Xcode's device menu, kept tidy by reusing a small pool and deleting long-unused ones. Device Hub
+  doesn't open windows for simulators booted in the background, so they don't pop up on screen.
 - Inside the agents' group, each claimed simulator records its owner: the agent session ID (OpenCode sets
   `OPENCODE_SESSION_ID` in agent shells), the project, and when. Released when the agent is done or the session
   ends.
