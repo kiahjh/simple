@@ -8,6 +8,8 @@ const home = mkdtempSync(join(tmpdir(), "simple-test-"));
 const port = 47000 + Math.floor(Math.random() * 1000);
 const env = { ...process.env, SIMPLE_HOME: home, SIMPLE_PORT: String(port) };
 const base = `http://127.0.0.1:${port}`;
+// Tests that list real simulators. The simulator service can take a while to answer on a cold machine.
+const SIMCTL_TIMEOUT_MS = 60_000;
 
 function simple(...args: string[]) {
   const result = Bun.spawnSync([process.execPath, "src/cli/main.ts", ...args], { env });
@@ -33,29 +35,37 @@ describe("cli", () => {
     expect(simple("--help").stdout).toContain("Usage:");
   });
 
-  test("no arguments lists simulators", () => {
-    const result = simple();
-    expect(result.code).toBe(0);
-    expect(result.stdout).toContain("You\n");
-    // SIMPLE_HOME is a fresh folder, so the agents have no simulators yet.
-    expect(result.stdout).toContain("Agents\n  none yet");
-    expect(simple("status").stdout).toBe(result.stdout);
-  });
+  test(
+    "no arguments lists simulators",
+    () => {
+      const result = simple();
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("You\n");
+      // SIMPLE_HOME is a fresh folder, so the agents have no simulators yet.
+      expect(result.stdout).toContain("Agents\n  none yet");
+      expect(simple("status").stdout).toBe(result.stdout);
+    },
+    SIMCTL_TIMEOUT_MS,
+  );
 
-  test("--json includes every simulator", () => {
-    const result = simple("--json");
-    expect(result.code).toBe(0);
-    const body = JSON.parse(result.stdout);
-    expect(body.dashboard).toBeNull();
-    expect(Array.isArray(body.simulators)).toBe(true);
-    for (const sim of body.simulators) {
-      expect(sim).toMatchObject({
-        group: "you",
-        udid: expect.any(String),
-        state: expect.any(String),
-      });
-    }
-  });
+  test(
+    "--json includes every simulator",
+    () => {
+      const result = simple("--json");
+      expect(result.code).toBe(0);
+      const body = JSON.parse(result.stdout);
+      expect(body.dashboard).toBeNull();
+      expect(Array.isArray(body.simulators)).toBe(true);
+      for (const sim of body.simulators) {
+        expect(sim).toMatchObject({
+          group: "you",
+          udid: expect.any(String),
+          state: expect.any(String),
+        });
+      }
+    },
+    SIMCTL_TIMEOUT_MS,
+  );
 
   test("unknown commands and options are usage errors", () => {
     expect(simple("nope")).toMatchObject({ code: 2 });
@@ -81,12 +91,16 @@ describe("background server", () => {
     expect((await fetch(`${base}${script}`)).status).toBe(200);
   });
 
-  test("the server lists simulators", async () => {
-    const res = await fetch(`${base}/api/simulators`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(Array.isArray(body.simulators)).toBe(true);
-  });
+  test(
+    "the server lists simulators",
+    async () => {
+      const res = await fetch(`${base}/api/simulators`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(Array.isArray(body.simulators)).toBe(true);
+    },
+    SIMCTL_TIMEOUT_MS,
+  );
 
   test("dashboard reuses a running server", () => {
     const before = simple("server", "status").stdout;
