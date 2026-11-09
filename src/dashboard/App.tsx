@@ -72,13 +72,22 @@ function GroupSection({ title, simulators }: { title: string; simulators: Simula
 function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
   return (
     <article className="card">
-      <div className="thumbnail">
-        {s.state === "running" ? (
+      {s.state === "running" ? (
+        <a
+          className="thumbnail"
+          href={`/sim/${s.udid}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Open ${s.name} in a new tab`}
+        >
           <Thumbnail udid={s.udid} name={s.name} />
-        ) : (
+          <span className="open-hint">Open ↗</span>
+        </a>
+      ) : (
+        <div className="thumbnail">
           <span className="muted">{s.state === "starting" ? "Starting…" : "Stopping…"}</span>
-        )}
-      </div>
+        </div>
+      )}
       <div className="details">
         <div className="title">
           <span className="name">{s.name}</span>

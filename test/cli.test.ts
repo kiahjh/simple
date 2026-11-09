@@ -102,6 +102,16 @@ describe("background server", () => {
     SIMCTL_TIMEOUT_MS,
   );
 
+  test(
+    "opening an unknown simulator explains itself",
+    async () => {
+      const res = await fetch(`${base}/sim/not-a-simulator`);
+      expect(res.status).toBe(404);
+      expect(await res.text()).toContain("There's no simulator with that ID.");
+    },
+    SIMCTL_TIMEOUT_MS,
+  );
+
   test("dashboard reuses a running server", () => {
     const before = simple("server", "status").stdout;
     simple("dashboard");

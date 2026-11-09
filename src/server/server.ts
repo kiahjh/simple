@@ -2,7 +2,7 @@ import dashboard from "../dashboard/index.html";
 import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "../mjpeg.ts";
 import { listSimulators, type Simulator } from "../simulators.ts";
 import { VERSION } from "../version.ts";
-import { type Helper, Helpers, helperStreamUrl } from "./helpers.ts";
+import { type Helper, Helpers, helperPageUrl, helperStreamUrl } from "./helpers.ts";
 import { log } from "./log.ts";
 
 /** Thumbnails are small, so a few frames a second looks live without sending full-speed video. */
@@ -41,6 +41,22 @@ export function startServer(port: number) {
           return Response.json(body);
         } catch (error) {
           return errorResponse(500, error);
+        }
+      },
+      // Opens serve-sim's full interactive view: start the simulator's helper if needed, then send the browser to it.
+      "/sim/:udid": async (req) => {
+        const simulator = (await listSimulators()).find((s) => s.udid === req.params.udid);
+        if (!simulator) return messagePage(404, "There's no simulator with that ID.");
+        if (simulator.state !== "running") {
+          return messagePage(409, `${simulator.name} isn't running.`);
+        }
+        try {
+          const helper = await helpers.acquire(simulator);
+          // Not a long-lived viewer: the full view keeps the helper alive through its own connection.
+          helpers.release(simulator.udid);
+          return Response.redirect(helperPageUrl(helper), 302);
+        } catch (error) {
+          return messagePage(502, `Couldn't open ${simulator.name}: ${String(error)}`);
         }
       },
       "/api/simulators/:udid/thumbnail": async (req, server) => {
@@ -94,6 +110,15 @@ export function startServer(port: number) {
       server.stop(true);
     },
   };
+}
+
+/** A minimal page for errors people see in the browser rather than in the dashboard. */
+function messagePage(status: number, message: string): Response {
+  const escaped = message.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const html = `<!doctype html><meta charset="utf-8"><title>simple</title>
+<body style="font: 15px -apple-system, system-ui; padding: 48px; color-scheme: light dark">
+<p>${escaped}</p><p><a href="/">Back to the dashboard</a></p>`;
+  return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
 function errorResponse(status: number, error: unknown): Response {

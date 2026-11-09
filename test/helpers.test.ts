@@ -38,7 +38,7 @@ function fakeServeSim() {
 describe("Helpers", () => {
   test("starts helpers one at a time, so they don't race for a port", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers(fake.run);
+    const helpers = new Helpers({ runServeSim: fake.run });
     const [a, b] = await Promise.all([helpers.acquire(sim("A")), helpers.acquire(sim("B"))]);
     expect(fake.maxOverlap()).toBe(1);
     expect(new Set([a.port, b.port]).size).toBe(2);
@@ -46,7 +46,7 @@ describe("Helpers", () => {
 
   test("starts one helper per simulator, however many viewers ask at once", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers(fake.run);
+    const helpers = new Helpers({ runServeSim: fake.run });
     await Promise.all([
       helpers.acquire(sim("A")),
       helpers.acquire(sim("A")),
@@ -58,12 +58,14 @@ describe("Helpers", () => {
   test("a failed start doesn't block later ones", async () => {
     const fake = fakeServeSim();
     let failNext = true;
-    const helpers = new Helpers(async (args) => {
-      if (args.includes("--detach") && failNext) {
-        failNext = false;
-        throw new Error("Port 3100 is already in use");
-      }
-      return fake.run(args);
+    const helpers = new Helpers({
+      runServeSim: async (args) => {
+        if (args.includes("--detach") && failNext) {
+          failNext = false;
+          throw new Error("Port 3100 is already in use");
+        }
+        return fake.run(args);
+      },
     });
     await expect(helpers.acquire(sim("A"))).rejects.toThrow("already in use");
     expect((await helpers.acquire(sim("A"))).port).toBe(3100);
@@ -71,9 +73,27 @@ describe("Helpers", () => {
 
   test("stops helpers whose simulators stopped running", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers(fake.run);
+    const helpers = new Helpers({ runServeSim: fake.run });
     await helpers.acquire(sim("A"));
     await helpers.prune([sim("A", "off")]);
+    expect(fake.calls.at(-1)).toEqual(["--kill", "A"]);
+  });
+
+  test("stops an idle helper, but not while serve-sim's full view is open on it", async () => {
+    const fake = fakeServeSim();
+    let fullViewOpen = true;
+    const helpers = new Helpers({
+      runServeSim: fake.run,
+      hasInteractiveViewers: async () => fullViewOpen,
+      idleStopMs: 20,
+    });
+    await helpers.acquire(sim("A"));
+    helpers.release("A");
+    await Bun.sleep(70);
+    expect(fake.calls.some((c) => c.includes("--kill"))).toBe(false);
+
+    fullViewOpen = false;
+    await Bun.sleep(50);
     expect(fake.calls.at(-1)).toEqual(["--kill", "A"]);
   });
 });

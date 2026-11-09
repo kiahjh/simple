@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The format follows
   button to copy its ID. It refreshes itself every couple of seconds.
 - Running simulators show a live thumbnail of their screen on the dashboard, which reconnects by itself if the
   stream is interrupted (for example when the simulator restarts). Requires Node.js 20 or later.
+- Clicking a running simulator's thumbnail opens serve-sim's full interactive view of it in a new tab (touch,
+  keyboard, rotation, and fold controls for the iPhone Duo).
 - `simple dashboard` starts a background server if needed and prints the dashboard's address; `--open` opens it.
 - `simple server status` and `simple server stop` show and stop the background server.
 - `simple --help` and `simple --version`.

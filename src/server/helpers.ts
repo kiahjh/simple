@@ -18,9 +18,18 @@ export type Helper = {
   stopTimer?: ReturnType<typeof setTimeout>;
 };
 
+export type HelpersOptions = {
+  /** Runs the serve-sim CLI. Tests pass a fake. */
+  runServeSim?: (args: string[]) => Promise<string>;
+  /** Whether someone has serve-sim's full interactive view open on this helper. */
+  hasInteractiveViewers?: (helper: Helper) => Promise<boolean>;
+  idleStopMs?: number;
+};
+
 /**
  * Runs serve-sim's streaming helpers: one per simulator that someone is watching, started on demand and stopped
- * a minute after the last viewer leaves or as soon as the simulator stops running.
+ * a minute after the last viewer leaves (unless serve-sim's full view is still open on it) or as soon as the
+ * simulator stops running.
  */
 export class Helpers {
   private readonly helpers = new Map<string, Helper>();
@@ -31,8 +40,15 @@ export class Helpers {
    */
   private startQueue: Promise<unknown> = Promise.resolve();
 
-  /** `runServeSim` runs the serve-sim CLI; tests pass a fake. */
-  constructor(private readonly runServeSim: (args: string[]) => Promise<string> = serveSim) {}
+  private readonly runServeSim: (args: string[]) => Promise<string>;
+  private readonly hasInteractiveViewers: (helper: Helper) => Promise<boolean>;
+  private readonly idleStopMs: number;
+
+  constructor(options: HelpersOptions = {}) {
+    this.runServeSim = options.runServeSim ?? serveSim;
+    this.hasInteractiveViewers = options.hasInteractiveViewers ?? interactiveViewers;
+    this.idleStopMs = options.idleStopMs ?? IDLE_STOP_MS;
+  }
 
   /** Returns a running helper for the simulator and counts a viewer until `release`. */
   async acquire(simulator: Simulator): Promise<Helper> {
@@ -47,9 +63,20 @@ export class Helpers {
     const helper = this.helpers.get(udid);
     if (!helper) return;
     helper.viewers = Math.max(0, helper.viewers - 1);
-    if (helper.viewers === 0) {
-      helper.stopTimer = setTimeout(() => void this.stop(udid), IDLE_STOP_MS);
-    }
+    if (helper.viewers === 0) this.scheduleIdleStop(helper);
+  }
+
+  /** Stops the helper after a quiet minute, checking again later while serve-sim's full view is open on it. */
+  private scheduleIdleStop(helper: Helper): void {
+    clearTimeout(helper.stopTimer);
+    helper.stopTimer = setTimeout(async () => {
+      if (this.helpers.get(helper.udid) !== helper || helper.viewers > 0) return;
+      if (await this.hasInteractiveViewers(helper).catch(() => false)) {
+        this.scheduleIdleStop(helper);
+        return;
+      }
+      await this.stop(helper.udid);
+    }, this.idleStopMs);
   }
 
   /** Forgets a helper that stopped answering, so the next viewer starts a fresh one. */
@@ -136,6 +163,25 @@ export class Helpers {
 
 export function helperStreamUrl(helper: Helper): string {
   return `http://127.0.0.1:${helper.port}/helper/${helper.udid}/stream.mjpeg`;
+}
+
+/** serve-sim's full interactive view of this helper's simulator. */
+export function helperPageUrl(helper: Helper): string {
+  return `http://127.0.0.1:${helper.port}/`;
+}
+
+/**
+ * Whether serve-sim's full view is open on this helper. Its page holds a WebSocket for touch and keyboard input,
+ * which serve-sim's diagnostics count; simple's thumbnails don't open one.
+ */
+async function interactiveViewers(helper: Helper): Promise<boolean> {
+  const res = await fetch(`http://127.0.0.1:${helper.port}/api/diagnostics`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) return false;
+  const body = (await res.json()) as { sessions?: { udid?: string; hid?: { sockets?: number } }[] };
+  const session = body.sessions?.find((s) => s.udid === helper.udid);
+  return (session?.hid?.sockets ?? 0) > 0;
 }
 
 // serve-sim's package exports don't include package.json, so TypeScript can't import it; Bun can still find it.

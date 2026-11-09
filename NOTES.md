@@ -148,5 +148,12 @@ Steps, each committed separately:
      with `fetch` and reconnects (1 s, doubling to 10 s). serve-sim commands time out after 20 s, stream connects
      after 5 s, and failures go to `server.log`.
    - Before distributing a compiled binary: it must ship serve-sim and needs Node on the machine.
-4. Clicking a card opens serve-sim's full interactive view.
+4. ✅ Clicking a card's screen opens serve-sim's full interactive view in a new tab, via `GET /sim/:udid`
+   (starts the helper if needed, then redirects to `http://127.0.0.1:<helper port>/`; each detached helper
+   serves the full preview page at its root).
+   - Our server can't see that page's viewers directly, so before stopping an idle helper it asks the helper's
+     `/api/diagnostics` how many interactive WebSocket connections it has (`sessions[].hid.sockets`). The full
+     view holds one; thumbnails don't. While it's open, the helper stays up.
+   - The Duo's full view takes ~5–13 s to go live the first time (its 3D model loads).
+   - Later idea: open the full view inside our dashboard instead of a new tab, through serve-sim's middleware.
 5. Release prep: restart an outdated server automatically, then tag `v0.1.0-alpha.1` with a GitHub Release.
