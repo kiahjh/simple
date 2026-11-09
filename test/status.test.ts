@@ -102,6 +102,11 @@ describe("formatStatus", () => {
     );
   });
 
+  test("with color, the model column is faint and italic", () => {
+    const out = formatStatus(yours, { all: false, color: true, dashboard: null });
+    expect(out).toContain("\x1b[2;3miPhone Duo           \x1b[0m");
+  });
+
   test("--all lists everything and marks unavailable simulators", () => {
     const agents = parseSimctlList(
       { devices: { "com.apple.CoreSimulator.SimRuntime.iOS-27-1": [samples] } },

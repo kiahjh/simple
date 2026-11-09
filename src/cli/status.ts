@@ -21,6 +21,7 @@ const DOT_COLORS: Record<State, string> = {
   off: "\x1b[2m",
 };
 const DIM = "\x1b[2m";
+const FAINT_ITALIC = "\x1b[2;3m";
 const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
 
@@ -40,7 +41,9 @@ export function formatStatus(simulators: Simulator[], options: StatusOptions): s
     const widths = [0, 1, 2].map((i) => Math.max(0, ...columns.map((c) => c[i]?.length ?? 0)));
     shown.forEach((s, row) => {
       const cells = columns[row] ?? [];
+      // Pad before coloring so escape codes don't throw off the alignment.
       const padded = cells.map((cell, i) => (i < 3 ? cell.padEnd(widths[i] ?? 0) : cell));
+      padded[1] = paint(FAINT_ITALIC, padded[1] ?? "");
       lines.push(`  ${paint(DOT_COLORS[s.state], DOTS[s.state])} ${padded.join("   ")}`.trimEnd());
     });
 
