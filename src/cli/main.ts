@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
+import { claim, release, touch } from "../agents/claims.ts";
+import { currentOwner } from "../agents/owner.ts";
 import { dashboardUrl, serverPort } from "../paths.ts";
 import { runServer } from "../server/main.ts";
 import { listSimulators } from "../simulators.ts";
@@ -12,15 +14,22 @@ const HELP = `simple: simulator tooling for people and agents
 
 Usage:
   simple [status] [--all] [--json]   List simulators: yours, and the agents'
+  simple claim [MODEL] [--os VERSION] [--json]
+                                     Get a booted agent simulator and print its ID. MODEL is duo, ipad,
+                                     iphone (the default), or a model name like "iPhone 18 Pro"
+  simple release [ID] [--force]      Release your agent simulators (or one): they're shut down and erased
   simple dashboard [--open]          Start the background server if needed and print the dashboard URL
   simple server status               Show whether the background server is running
   simple server stop                 Stop the background server
 
 Options:
   --all                              Include simulators that are off
-  --json                             Print machine-readable JSON (always includes every simulator)
+  --json                             Print machine-readable JSON (status always includes every simulator)
+  --owner NAME                       Claim or release as NAME (default: this OpenCode session, or "you")
   -h, --help                         Show this help
   -v, --version                      Print the version
+
+Claims last while their owner keeps using simple, and lapse after 2 hours without a simple command.
 `;
 
 class UsageError extends Error {}
@@ -34,6 +43,9 @@ async function main(argv: string[]): Promise<number> {
       open: { type: "boolean" },
       all: { type: "boolean" },
       json: { type: "boolean" },
+      os: { type: "string" },
+      owner: { type: "string" },
+      force: { type: "boolean" },
     },
     allowPositionals: true,
   });
@@ -49,7 +61,26 @@ async function main(argv: string[]): Promise<number> {
 
   const [command = "status", ...rest] = positionals;
   const port = serverPort();
+  const owner = currentOwner(values.owner);
+  // Any simple command keeps the caller's claims alive.
+  if (command !== "_server") await touch(owner);
+
   switch (command) {
+    case "claim": {
+      const progress = (message: string) => console.error(message);
+      const simulator = await claim({ model: rest[0], os: values.os, owner, log: progress });
+      console.log(values.json ? JSON.stringify(simulator, null, 2) : simulator.udid);
+      return 0;
+    }
+    case "release": {
+      const released = await release(owner, rest[0], Boolean(values.force));
+      if (values.json) console.log(JSON.stringify({ released }, null, 2));
+      else
+        console.log(
+          released.length ? `Released ${released.length} simulator(s).` : "Nothing to release.",
+        );
+      return 0;
+    }
     case "status": {
       const [simulators, running] = await Promise.all([listSimulators(), fetchHealth(port)]);
       const dashboard = running ? dashboardUrl(port) : null;

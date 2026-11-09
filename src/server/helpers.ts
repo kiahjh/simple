@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { agentDeviceSetPath, type Simulator } from "../simulators.ts";
+import type { Simulator } from "../simulators.ts";
 import { log } from "./log.ts";
 
 /** How long a helper keeps running after its last viewer leaves. */
@@ -11,7 +11,6 @@ const SERVE_SIM_TIMEOUT_MS = 20_000;
 export type Helper = {
   udid: string;
   port: number;
-  deviceSet: string | null;
   /** False when someone else started this helper; then simple never stops it. */
   ours: boolean;
   viewers: number;
@@ -128,19 +127,14 @@ export class Helpers {
   }
 
   private async startHelper(simulator: Simulator): Promise<Helper> {
-    const deviceSet = simulator.group === "agents" ? agentDeviceSetPath() : null;
-    const setArgs = deviceSet ? ["--device-set", deviceSet] : [];
-    const listed = parseJson(await this.runServeSim([...setArgs, "--list", simulator.udid]));
-    const started = parseJson(
-      await this.runServeSim([...setArgs, "--detach", "--quiet", simulator.udid]),
-    );
+    const listed = parseJson(await this.runServeSim(["--list", simulator.udid]));
+    const started = parseJson(await this.runServeSim(["--detach", "--quiet", simulator.udid]));
     const port = Number(started.port);
     if (!Number.isInteger(port))
       throw new Error(`serve-sim didn't report a port for ${simulator.udid}`);
     const helper: Helper = {
       udid: simulator.udid,
       port,
-      deviceSet,
       ours: listed.running !== true,
       viewers: 0,
     };
@@ -153,8 +147,7 @@ export class Helpers {
     if (!helper) return;
     this.forget(udid);
     if (!helper.ours) return;
-    const setArgs = helper.deviceSet ? ["--device-set", helper.deviceSet] : [];
-    await this.runServeSim([...setArgs, "--kill", udid]).catch((error) =>
+    await this.runServeSim(["--kill", udid]).catch((error) =>
       log(`couldn't stop the helper for ${udid}: ${String(error)}`),
     );
     log(`stopped the helper for ${udid}`);

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import type { Registry } from "../src/agents/registry.ts";
 import { formatStatus } from "../src/cli/status.ts";
-import { parseSimctlList, type SimctlList, sortSimulators } from "../src/simulators.ts";
+import type { SimctlList } from "../src/simctl.ts";
+import { parseSimctlList, sortSimulators } from "../src/simulators.ts";
 
 const samples = {
   udid: "A",
@@ -19,8 +21,16 @@ const catalog: SimctlList = {
     },
   ],
   runtimes: [
-    { identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-1", name: "iOS 27.1" },
-    { identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-0", name: "iOS 27.0" },
+    {
+      identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-1",
+      name: "iOS 27.1",
+      version: "27.1",
+    },
+    {
+      identifier: "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+      name: "iOS 27.0",
+      version: "27.0",
+    },
   ],
   devices: {
     "com.apple.CoreSimulator.SimRuntime.iOS-27-1": [
@@ -55,7 +65,8 @@ const catalog: SimctlList = {
   },
 };
 
-const yours = sortSimulators(parseSimctlList(catalog, "you", catalog));
+const noAgents: Registry = { simulators: {} };
+const yours = sortSimulators(parseSimctlList(catalog, noAgents));
 
 describe("parseSimctlList", () => {
   test("names models and operating systems, and maps states", () => {
@@ -67,6 +78,7 @@ describe("parseSimctlList", () => {
       state: "running",
       group: "you",
       available: true,
+      owner: null,
     });
     expect(yours.find((s) => s.udid === "C")?.state).toBe("starting");
   });
@@ -108,12 +120,7 @@ describe("formatStatus", () => {
   });
 
   test("--all lists everything and marks unavailable simulators", () => {
-    const agents = parseSimctlList(
-      { devices: { "com.apple.CoreSimulator.SimRuntime.iOS-27-1": [samples] } },
-      "agents",
-      catalog,
-    );
-    const out = formatStatus([...yours, ...agents], {
+    const out = formatStatus(yours, {
       all: true,
       color: false,
       dashboard: "http://localhost:4729",
@@ -121,7 +128,62 @@ describe("formatStatus", () => {
     expect(out).toContain("○ Old Phone");
     expect(out).toContain("unavailable (runtime not installed)");
     expect(out).not.toContain("off (simple --all");
-    expect(out).toContain("Agents\n  ● Samples");
     expect(out.endsWith("Dashboard: http://localhost:4729")).toBe(true);
+  });
+});
+
+describe("agent simulators", () => {
+  const now = Date.parse("2026-11-09T20:00:00Z");
+  const agentRecord = (claim: Registry["simulators"][string]["claim"]) => ({
+    createdAt: "2026-11-09T18:00:00Z",
+    lastUsedAt: "2026-11-09T18:00:00Z",
+    claim,
+    dirty: true,
+  });
+
+  test("are the ones in simple's registry, with their owners", () => {
+    const registry: Registry = {
+      simulators: {
+        A: agentRecord({
+          owner: "opencode:ses_1",
+          label: "duo-support",
+          claimedAt: "2026-11-09T19:14:00Z",
+          lastSeenAt: "2026-11-09T19:50:00Z",
+        }),
+        B: agentRecord(null),
+      },
+    };
+    const all = parseSimctlList(catalog, registry, now);
+    expect(all.find((s) => s.udid === "A")).toMatchObject({
+      group: "agents",
+      owner: { label: "duo-support", since: "2026-11-09T19:14:00Z" },
+    });
+    expect(all.find((s) => s.udid === "B")).toMatchObject({ group: "agents", owner: null });
+    expect(all.find((s) => s.udid === "C")?.group).toBe("you");
+
+    const out = formatStatus(sortSimulators(all), {
+      all: true,
+      color: false,
+      dashboard: null,
+      formatTime: () => "2:14 PM",
+    });
+    expect(out).toContain(
+      "Agents\n  ● Samples       iPhone Duo   iOS 27.1   running  held by duo-support since 2:14 PM",
+    );
+    expect(out).toContain("○ Another Duo   iPhone Duo   iOS 27.1   off      idle");
+  });
+
+  test("a claim lapses after 2 hours without a simple command from its owner", () => {
+    const registry: Registry = {
+      simulators: {
+        A: agentRecord({
+          owner: "opencode:ses_1",
+          label: "duo-support",
+          claimedAt: "2026-11-09T15:00:00Z",
+          lastSeenAt: "2026-11-09T17:59:00Z",
+        }),
+      },
+    };
+    expect(parseSimctlList(catalog, registry, now).find((s) => s.udid === "A")?.owner).toBeNull();
   });
 });

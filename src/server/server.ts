@@ -1,3 +1,4 @@
+import { tidyUp } from "../agents/claims.ts";
 import { buildId } from "../build.ts";
 import dashboard from "../dashboard/index.html";
 import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "../mjpeg.ts";
@@ -10,6 +11,7 @@ import { log } from "./log.ts";
 const THUMBNAIL_FPS = 5;
 /** How long to wait for a helper to start answering a stream request. */
 const CONNECT_TIMEOUT_MS = 5000;
+const TIDY_INTERVAL_MS = 60_000;
 
 export type Health = {
   name: "simple";
@@ -29,6 +31,10 @@ export function startServer(port: number) {
   // Fingerprint the code now, at startup: later edits to the files shouldn't change what this server reports.
   buildId();
   const helpers = new Helpers();
+  // End lapsed claims and delete long-unused agent simulators, even when no agent runs simple for a while.
+  const tidyTimer = setInterval(() => {
+    tidyUp().catch((error) => log(`couldn't tidy agent simulators: ${String(error)}`));
+  }, TIDY_INTERVAL_MS);
 
   const server = Bun.serve({
     hostname: "127.0.0.1",
@@ -111,6 +117,7 @@ export function startServer(port: number) {
   return {
     url: server.url,
     async stop() {
+      clearInterval(tidyTimer);
       await helpers.stopAll();
       server.stop(true);
     },

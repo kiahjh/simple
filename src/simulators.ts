@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { dataDir } from "./paths.ts";
+import { type Registry, readRegistry } from "./agents/registry.ts";
+import { type SimctlList, simctlList } from "./simctl.ts";
 
 export type Group = "you" | "agents";
 export type State = "running" | "starting" | "stopping" | "off";
@@ -16,58 +15,46 @@ export type Simulator = {
   group: Group;
   /** False when its runtime isn't installed, so it can't boot. */
   available: boolean;
+  /** For agent simulators someone holds: who, and since when (ISO date). */
+  owner: { label: string; since: string } | null;
 };
 
-/** The device set that only simple manages: the agents' simulators. */
-export function agentDeviceSetPath(): string {
-  return join(dataDir(), "devices");
+/** How long a claim lasts without any simple command from its owner. */
+export const CLAIM_TTL_MS = 2 * 60 * 60 * 1000;
+
+export function claimIsLive(lastSeenAt: string, now = Date.now()): boolean {
+  return now - Date.parse(lastSeenAt) < CLAIM_TTL_MS;
 }
 
-/** Lists simulators in both groups: the person's (Xcode's default set) and the agents'. */
+/** Lists every simulator, in two groups: the ones simple created for agents, and everyone else's ("you"). */
 export async function listSimulators(): Promise<Simulator[]> {
-  const agentSet = agentDeviceSetPath();
-  const [yours, agents] = await Promise.all([
-    simctlList([]),
-    existsSync(agentSet) ? simctlList(["--set", agentSet]) : null,
-  ]);
-  // Device types and runtimes are machine-wide, so the default set's lists cover both groups.
-  return sortSimulators([
-    ...parseSimctlList(yours, "you", yours),
-    ...(agents ? parseSimctlList(agents, "agents", yours) : []),
-  ]);
+  return sortSimulators(parseSimctlList(await simctlList(), readRegistry()));
 }
 
-// `xcrun simctl list -j`, trimmed to the fields simple reads.
-export type SimctlList = {
-  devicetypes?: { identifier: string; name: string }[];
-  runtimes?: { identifier: string; name: string }[];
-  devices: Record<
-    string,
-    {
-      udid: string;
-      name: string;
-      state: string;
-      isAvailable?: boolean;
-      deviceTypeIdentifier?: string;
-    }[]
-  >;
-};
-
-export function parseSimctlList(list: SimctlList, group: Group, catalog: SimctlList): Simulator[] {
-  const models = new Map(catalog.devicetypes?.map((t) => [t.identifier, t.name]));
-  const oses = new Map(catalog.runtimes?.map((r) => [r.identifier, r.name]));
+export function parseSimctlList(
+  list: SimctlList,
+  registry: Registry,
+  now = Date.now(),
+): Simulator[] {
+  const models = new Map(list.devicetypes?.map((t) => [t.identifier, t.name]));
+  const oses = new Map(list.runtimes?.map((r) => [r.identifier, r.name]));
   return Object.entries(list.devices).flatMap(([runtime, devices]) =>
-    devices.map((device) => ({
-      udid: device.udid,
-      name: device.name,
-      model:
-        models.get(device.deviceTypeIdentifier ?? "") ??
-        nameFromIdentifier(device.deviceTypeIdentifier ?? "unknown"),
-      os: oses.get(runtime) ?? osFromRuntime(runtime),
-      state: stateFromSimctl(device.state),
-      group,
-      available: device.isAvailable ?? true,
-    })),
+    devices.map((device) => {
+      const agent = registry.simulators[device.udid];
+      const claim = agent?.claim && claimIsLive(agent.claim.lastSeenAt, now) ? agent.claim : null;
+      return {
+        udid: device.udid,
+        name: device.name,
+        model:
+          models.get(device.deviceTypeIdentifier ?? "") ??
+          nameFromIdentifier(device.deviceTypeIdentifier ?? "unknown"),
+        os: oses.get(runtime) ?? osFromRuntime(runtime),
+        state: stateFromSimctl(device.state),
+        group: agent ? "agents" : "you",
+        available: device.isAvailable ?? true,
+        owner: claim ? { label: claim.label, since: claim.claimedAt } : null,
+      } satisfies Simulator;
+    }),
   );
 }
 
@@ -79,7 +66,7 @@ export function sortSimulators(simulators: Simulator[]): Simulator[] {
   );
 }
 
-function stateFromSimctl(state: string): State {
+export function stateFromSimctl(state: string): State {
   switch (state) {
     case "Booted":
       return "running";
@@ -102,25 +89,4 @@ function osFromRuntime(identifier: string): string {
 /** "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro" → "iPhone 16 Pro". */
 function nameFromIdentifier(identifier: string): string {
   return (identifier.split(".").pop() ?? identifier).replaceAll("-", " ");
-}
-
-async function simctlList(setArgs: string[]): Promise<SimctlList> {
-  let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
-  try {
-    proc = Bun.spawn(["xcrun", "simctl", ...setArgs, "list", "-j"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-  } catch {
-    throw new Error("Couldn't run xcrun simctl. Is Xcode installed?");
-  }
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  if (code !== 0) {
-    throw new Error(`Couldn't list simulators (xcrun simctl exited ${code}): ${stderr.trim()}`);
-  }
-  return JSON.parse(stdout) as SimctlList;
 }

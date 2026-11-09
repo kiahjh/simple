@@ -11,6 +11,7 @@ function sim(udid: string, state: Simulator["state"] = "running"): Simulator {
     state,
     group: "you",
     available: true,
+    owner: null,
   };
 }
 

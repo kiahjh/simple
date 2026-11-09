@@ -6,7 +6,12 @@ export type StatusOptions = {
   color: boolean;
   /** The dashboard's address when the server is running. */
   dashboard: string | null;
+  /** Formats claim times; tests pass a fixed one. */
+  formatTime?: (iso: string) => string;
 };
+
+const localTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const GROUPS: { group: Group; title: string }[] = [
   { group: "you", title: "You" },
@@ -37,7 +42,13 @@ export function formatStatus(simulators: Simulator[], options: StatusOptions): s
     lines.push(paint(BOLD, title));
     if (inGroup.length === 0) lines.push(paint(DIM, "  none yet"));
 
-    const columns = shown.map((s) => [s.name, s.model, s.os, describeState(s)] as const);
+    const time = options.formatTime ?? localTime;
+    const columns = shown.map((s) => {
+      const state = describeState(s);
+      if (group !== "agents") return [s.name, s.model, s.os, state] as const;
+      const holder = s.owner ? `held by ${s.owner.label} since ${time(s.owner.since)}` : "idle";
+      return [s.name, s.model, s.os, `${state.padEnd(8)} ${holder}`] as const;
+    });
     const widths = [0, 1, 2].map((i) => Math.max(0, ...columns.map((c) => c[i]?.length ?? 0)));
     shown.forEach((s, row) => {
       const cells = columns[row] ?? [];

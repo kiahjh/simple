@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+- `simple claim [MODEL]` gives an agent its own booted simulator and prints its ID. MODEL is `duo`, `ipad`,
+  `iphone` (the default) or a model name; `--os` picks an iOS version. Agent simulators live in Xcode's normal
+  device list (named "Agent · …"), so `xcodebuild`, Xcode and the Xcode MCP can use them. An idle one is reused
+  before a new one is created.
+- `simple release [ID]` hands the caller's simulators back; they're shut down and erased for the next agent.
+  Releasing someone else's needs `--force`.
+- `simple` shows who holds each agent simulator and since when. Claims lapse after 2 hours without a `simple`
+  command from their owner, and agent simulators unused for 7 days are deleted.
+- Owners are identified by their OpenCode session (labeled with the project folder), `--owner NAME`, or "you".
+
 ## [0.1.0-alpha.1] - 2026-11-09
 
 The first alpha: see what simulators are running, and watch them live.
