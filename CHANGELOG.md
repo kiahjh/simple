@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
 - `simple` shows who holds each agent simulator and since when. Claims lapse after 2 hours without a `simple`
   command from their owner, and agent simulators unused for 7 days are deleted.
 - Owners are identified by their OpenCode session (labeled with the project folder), `--owner NAME`, or "you".
+- The dashboard shows who holds each agent simulator and since when.
+- `skills/simple/SKILL.md`: a short skill telling coding agents to claim their own simulator.
 
 ## [0.1.0-alpha.1] - 2026-11-09
 

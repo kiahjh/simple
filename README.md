@@ -12,6 +12,15 @@ of what's running and who's using it.
   is for scripts and agents.
 - `simple dashboard --open` opens a local dashboard with live thumbnails of every running simulator. Click one to
   open serve-sim's full interactive view (touch, keyboard, rotation, and folding for the iPhone Duo).
+- `simple claim duo` (or `ipad`, `iphone`, or a model name) gives an agent its own booted simulator, named
+  "Agent · …", and prints its ID for `xcodebuild`, `simctl` or the Xcode MCP. `simple release` hands it back,
+  erased. Claims lapse after 2 hours without a `simple` command from their owner.
+
+## For agents
+
+`skills/simple/SKILL.md` is a short skill that tells coding agents to claim their own simulator instead of using
+yours. Link or copy it into your agent's skills folder, for example
+`ln -s "$PWD/skills/simple" ~/.agents/skills/simple`.
 
 ## Install (from source, for now)
 
