@@ -60,6 +60,16 @@ AXe (not adopting):
 - The name `simple` is taken on npm (an old package); decide how to publish (scoped package, Homebrew, etc.) before
   the first release.
 
+## Stack (agreed)
+
+- TypeScript on Bun for the CLI, server and dashboard. Bun can compile to a single binary for distribution.
+- serve-sim embedded in-process through its middleware (`serve-sim/middleware`). Checked: its page and `/api`
+  serve fine under Bun 1.3.5 and Node 26. Not yet checked: live stream and WebSocket proxying under Bun; verify
+  first, and fall back to Node if needed.
+- Small Swift helper programs only where Apple frameworks are needed (e.g. straightening rotated Duo frames, Device
+  Hub automation), called from the TypeScript core, as serve-sim does.
+- Not Rust: no performance need, and a third language for contributors.
+
 ## Next decision
 
-The language and stack.
+How simulator ownership works.
