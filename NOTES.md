@@ -53,6 +53,24 @@ AXe (not adopting):
 - `tap --label` is nice on normal screens; first call per device timed out once while connecting.
 - Homebrew install fails on macOS 27 with outdated Command Line Tools; release tarball works.
 
+## Driving Device Hub (Nov 9 2026, Xcode 27.1 beta)
+
+Learned while opening an iPhone and a Duo in Device Hub on request. `prototypes/devicehub-ax.swift` does each step.
+
+- Use the Device Hub inside the Xcode you want (`Xcode 27.1 beta.app/Contents/Applications/DeviceHub.app`,
+  bundle `com.apple.dt.Devices`); older ones lack Duo fold controls.
+- Never quit Device Hub to "reset" it: that shuts down every running simulator.
+- It doesn't open windows for simulators booted with `simctl`, before or after it launches. It registers a
+  `devices://` URL scheme, but `devices://<udid>`, `/device/<udid>`, `/simulator/<udid>` and `/open?udid=` all
+  did nothing.
+- Its accessibility tree is empty until something sets `AXManualAccessibility = true` on the app element; after
+  that, everything is reachable (sidebar rows, toolbar, menus). open-computer-use still fails with
+  `cgWindowNotFound`, so this needs our own small Swift helper.
+- To show a simulator: "Show Sidebar" button → set `AXSelected` on its row. "Open in New Window" turns the
+  current window into a compact window for that simulator; File > New Window opens another full window.
+- To check results without disturbing the screen: `CGWindowListCopyWindowInfo` for titles,
+  `screencapture -x -o -l <windowid>` for one window's image.
+
 ## Gotchas to design around
 
 - Unfolded Duo: the inner panel's framebuffer is rotated relative to the app. Raw frames come out sideways, and
