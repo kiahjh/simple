@@ -156,4 +156,16 @@ Steps, each committed separately:
      view holds one; thumbnails don't. While it's open, the helper stays up.
    - The Duo's full view takes ~5–13 s to go live the first time (its 3D model loads).
    - Later idea: open the full view inside our dashboard instead of a new tab, through serve-sim's middleware.
-5. Release prep: restart an outdated server automatically, then tag `v0.1.0-alpha.1` with a GitHub Release.
+5. ✅ Release prep. The server reports a build ID: the version plus a fingerprint of `src/`, `package.json` and
+   `bun.lock`, taken when it starts (a compiled binary uses just the version). `ensureServer` restarts a server
+   whose build ID differs from the CLI's. Costs ~30 ms per command. Released `v0.1.0-alpha.1` on Nov 9, 2026,
+   installed from source.
+
+## How to release
+
+1. Move the changelog's "Unreleased" entries under a new `## [x.y.z] - YYYY-MM-DD` heading, add a one-line
+   summary, and update the comparison links at the bottom.
+2. Set `version` in `package.json`. Commit as "Release x.y.z" and push; wait for the `check` workflow to pass.
+3. `git tag -a vx.y.z -m "simple x.y.z"`, `git push origin vx.y.z`.
+4. `gh release create vx.y.z --title "simple x.y.z" --notes-file <that changelog section>`, with `--prerelease`
+   for alphas and betas.

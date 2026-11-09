@@ -1,3 +1,4 @@
+import { buildId } from "../build.ts";
 import dashboard from "../dashboard/index.html";
 import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "../mjpeg.ts";
 import { listSimulators, type Simulator } from "../simulators.ts";
@@ -13,16 +14,20 @@ const CONNECT_TIMEOUT_MS = 5000;
 export type Health = {
   name: "simple";
   version: string;
+  /** Which code the server is running; see `buildId`. */
+  build: string;
   pid: number;
 };
 
 export type SimulatorsResponse = { simulators: Simulator[] };
 
 export function health(): Health {
-  return { name: "simple", version: VERSION, pid: process.pid };
+  return { name: "simple", version: VERSION, build: buildId(), pid: process.pid };
 }
 
 export function startServer(port: number) {
+  // Fingerprint the code now, at startup: later edits to the files shouldn't change what this server reports.
+  buildId();
   const helpers = new Helpers();
 
   const server = Bun.serve({

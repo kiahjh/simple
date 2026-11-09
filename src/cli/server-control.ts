@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, openSync } from "node:fs";
+import { buildId } from "../build.ts";
 import { dataDir, serverLogPath } from "../paths.ts";
 import type { Health } from "../server/server.ts";
 
@@ -21,10 +22,17 @@ export async function fetchHealth(port: number): Promise<Health | null> {
   }
 }
 
-/** Returns the running server, starting one in the background first if needed. */
+/**
+ * Returns the running server, starting one in the background first if needed. A server running different code
+ * (for example from before an update) is restarted.
+ */
 export async function ensureServer(port: number): Promise<Health> {
   const running = await fetchHealth(port);
-  if (running) return running;
+  if (running && running.build === buildId()) return running;
+  if (running) {
+    console.error("Restarting the simple server: it was running older code.");
+    await stopServer(port);
+  }
 
   mkdirSync(dataDir(), { recursive: true });
   const log = openSync(serverLogPath(), "a");

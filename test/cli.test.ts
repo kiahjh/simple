@@ -12,7 +12,13 @@ const base = `http://127.0.0.1:${port}`;
 const SIMCTL_TIMEOUT_MS = 60_000;
 
 function simple(...args: string[]) {
-  const result = Bun.spawnSync([process.execPath, "src/cli/main.ts", ...args], { env });
+  return simpleWith({}, ...args);
+}
+
+function simpleWith(extraEnv: Record<string, string>, ...args: string[]) {
+  const result = Bun.spawnSync([process.execPath, "src/cli/main.ts", ...args], {
+    env: { ...env, ...extraEnv },
+  });
   return {
     code: result.exitCode,
     stdout: result.stdout.toString().trim(),
@@ -116,6 +122,20 @@ describe("background server", () => {
     const before = simple("server", "status").stdout;
     simple("dashboard");
     expect(simple("server", "status").stdout).toBe(before);
+  });
+
+  test("dashboard restarts a server that's running older code", async () => {
+    simple("server", "stop");
+    simpleWith({ SIMPLE_BUILD_ID: "older-code" }, "dashboard");
+    const old = await (await fetch(`${base}/api/health`)).json();
+    expect(old.build).toBe("older-code");
+
+    const result = simple("dashboard");
+    expect(result.code).toBe(0);
+    expect(result.stderr).toContain("Restarting the simple server");
+    const fresh = await (await fetch(`${base}/api/health`)).json();
+    expect(fresh.build).not.toBe("older-code");
+    expect(fresh.pid).not.toBe(old.pid);
   });
 
   test("server stop stops it", async () => {
