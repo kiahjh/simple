@@ -1,5 +1,8 @@
 import dashboard from "../dashboard/index.html";
+import { listSimulators, type Simulator } from "../simulators.ts";
 import { VERSION } from "../version.ts";
+
+export type SimulatorsResponse = { simulators: Simulator[] };
 
 export type Health = {
   name: "simple";
@@ -20,6 +23,15 @@ export function startServer(port: number) {
     routes: {
       "/": dashboard,
       "/api/health": () => Response.json(health()),
+      "/api/simulators": async () => {
+        try {
+          const body: SimulatorsResponse = { simulators: await listSimulators() };
+          return Response.json(body);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return Response.json({ error: message }, { status: 500 });
+        }
+      },
     },
     fetch() {
       return new Response("Not found", { status: 404 });

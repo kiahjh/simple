@@ -111,8 +111,8 @@ Steps, each committed separately:
 1. ✅ The list in the terminal: `simple` / `simple status`, `--all`, `--json`. Reads both groups with one
    `xcrun simctl list -j` per device set (~0.15 s total). The agents' device set lives in
    `<data dir>/devices`; it's only read if it exists.
-2. The list on the dashboard: "Yours" and "Agents'" sections, cards for running simulators, a collapsed list of
-   off ones, refreshing itself every couple of seconds.
+2. ✅ The list on the dashboard: "Yours" and "Agents'" sections, cards for running simulators, a collapsed list
+   of off ones, refreshing itself every 2 s by polling `GET /api/simulators` (no caching; each poll runs simctl).
 3. Live thumbnails: serve-sim streams through our server, with helpers running only while a dashboard is open
    and stopped about a minute after the last one closes. Verifies streaming under Bun.
 4. Clicking a card opens serve-sim's full interactive view.

@@ -81,6 +81,13 @@ describe("background server", () => {
     expect((await fetch(`${base}${script}`)).status).toBe(200);
   });
 
+  test("the server lists simulators", async () => {
+    const res = await fetch(`${base}/api/simulators`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body.simulators)).toBe(true);
+  });
+
   test("dashboard reuses a running server", () => {
     const before = simple("server", "status").stdout;
     simple("dashboard");
