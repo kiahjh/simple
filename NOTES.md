@@ -183,6 +183,18 @@ Steps, each committed separately:
   48 s, because erasing makes the next boot a first boot. Kept as is for simplicity (Nov 9, 2026). Considered
   and declined for now: a warm, already-booted spare for ~2 s claims; skipping the erase (fast but leaks state).
 
+## Ideas for later (not decided)
+
+- Install a missing iOS runtime on request (Xcode can download runtimes from the command line).
+- Device settings on claim, e.g. `--dark`, language, text size.
+- A warm spare for ~2 s claims (declined for now, see the alpha.2 plan).
+- Say in `--help` that `claim` is meant for agents (people can still use it).
+- A "Release" button on the dashboard for agent simulators.
+- Open the full view inside the dashboard instead of a new tab (serve-sim's middleware).
+- "Show in Device Hub" for a simulator (see "Driving Device Hub").
+- Report serve-sim's port race on simultaneous `--detach` upstream.
+- Packaged installs (Homebrew or a single binary), which must bring serve-sim and need Node.
+
 ## How to release
 
 1. Move the changelog's "Unreleased" entries under a new `## [x.y.z] - YYYY-MM-DD` heading, add a one-line
