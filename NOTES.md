@@ -100,6 +100,20 @@ AXe (not adopting):
 - Checked: compiled with `bun build --compile`, the single binary (86 MB) starts and stops its own server.
 - Not handled yet: a running server from an older version isn't restarted after an upgrade.
 
-## Next step
+## 0.1.0-alpha.1 plan (agreed)
 
-Build `0.1.0-alpha.1`: list simulators from both groups and show them on the dashboard with live thumbnails.
+Each simulator shows its name, model, OS, state (running / starting / stopping / off), group, and its UDID
+(hidden in the UI but easy to copy). Later: front app and disk usage. Running simulators come first; off ones
+are tucked away.
+
+Steps, each committed separately:
+
+1. ✅ The list in the terminal: `simple` / `simple status`, `--all`, `--json`. Reads both groups with one
+   `xcrun simctl list -j` per device set (~0.15 s total). The agents' device set lives in
+   `<data dir>/devices`; it's only read if it exists.
+2. The list on the dashboard: "Yours" and "Agents'" sections, cards for running simulators, a collapsed list of
+   off ones, refreshing itself every couple of seconds.
+3. Live thumbnails: serve-sim streams through our server, with helpers running only while a dashboard is open
+   and stopped about a minute after the last one closes. Verifies streaming under Bun.
+4. Clicking a card opens serve-sim's full interactive view.
+5. Release prep: restart an outdated server automatically, then tag `v0.1.0-alpha.1` with a GitHub Release.

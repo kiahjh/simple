@@ -28,9 +28,33 @@ describe("cli", () => {
     expect(simple("--version")).toMatchObject({ code: 0, stdout: pkg.version });
   });
 
-  test("--help and no arguments print usage", () => {
+  test("--help prints usage", () => {
+    expect(simple("--help")).toMatchObject({ code: 0 });
     expect(simple("--help").stdout).toContain("Usage:");
-    expect(simple().stdout).toContain("Usage:");
+  });
+
+  test("no arguments lists simulators", () => {
+    const result = simple();
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("You\n");
+    // SIMPLE_HOME is a fresh folder, so the agents have no simulators yet.
+    expect(result.stdout).toContain("Agents\n  none yet");
+    expect(simple("status").stdout).toBe(result.stdout);
+  });
+
+  test("--json includes every simulator", () => {
+    const result = simple("--json");
+    expect(result.code).toBe(0);
+    const body = JSON.parse(result.stdout);
+    expect(body.dashboard).toBeNull();
+    expect(Array.isArray(body.simulators)).toBe(true);
+    for (const sim of body.simulators) {
+      expect(sim).toMatchObject({
+        group: "you",
+        udid: expect.any(String),
+        state: expect.any(String),
+      });
+    }
   });
 
   test("unknown commands and options are usage errors", () => {

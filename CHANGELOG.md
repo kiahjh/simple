@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+- `simple` (or `simple status`) lists simulators in two groups: yours, and the agents'. Running ones are shown;
+  `--all` includes the ones that are off, and `--json` prints every simulator for scripts and agents.
 - `simple dashboard` starts a background server if needed and prints the dashboard's address; `--open` opens it.
 - `simple server status` and `simple server stop` show and stop the background server.
 - `simple --help` and `simple --version`.

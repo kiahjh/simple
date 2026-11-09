@@ -3,19 +3,24 @@ import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
 import { dashboardUrl, serverPort } from "../paths.ts";
 import { runServer } from "../server/main.ts";
+import { listSimulators } from "../simulators.ts";
 import { VERSION } from "../version.ts";
 import { ensureServer, fetchHealth, stopServer } from "./server-control.ts";
+import { formatStatus } from "./status.ts";
 
 const HELP = `simple: simulator tooling for people and agents
 
 Usage:
-  simple dashboard [--open]   Start the background server if needed and print the dashboard URL
-  simple server status        Show whether the background server is running
-  simple server stop          Stop the background server
+  simple [status] [--all] [--json]   List simulators: yours, and the agents'
+  simple dashboard [--open]          Start the background server if needed and print the dashboard URL
+  simple server status               Show whether the background server is running
+  simple server stop                 Stop the background server
 
 Options:
-  -h, --help                  Show this help
-  -v, --version               Print the version
+  --all                              Include simulators that are off
+  --json                             Print machine-readable JSON (always includes every simulator)
+  -h, --help                         Show this help
+  -v, --version                      Print the version
 `;
 
 class UsageError extends Error {}
@@ -27,6 +32,8 @@ async function main(argv: string[]): Promise<number> {
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
       open: { type: "boolean" },
+      all: { type: "boolean" },
+      json: { type: "boolean" },
     },
     allowPositionals: true,
   });
@@ -35,14 +42,25 @@ async function main(argv: string[]): Promise<number> {
     console.log(VERSION);
     return 0;
   }
-  const [command, ...rest] = positionals;
-  if (values.help || command === undefined) {
+  if (values.help) {
     console.log(HELP);
     return 0;
   }
 
+  const [command = "status", ...rest] = positionals;
   const port = serverPort();
   switch (command) {
+    case "status": {
+      const [simulators, running] = await Promise.all([listSimulators(), fetchHealth(port)]);
+      const dashboard = running ? dashboardUrl(port) : null;
+      if (values.json) {
+        console.log(JSON.stringify({ dashboard, simulators }, null, 2));
+      } else {
+        const color = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+        console.log(formatStatus(simulators, { all: Boolean(values.all), color, dashboard }));
+      }
+      return 0;
+    }
     case "dashboard": {
       await ensureServer(port);
       const url = dashboardUrl(port);
