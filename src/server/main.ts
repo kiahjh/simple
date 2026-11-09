@@ -7,13 +7,16 @@ export function runServer(): void {
   const server = startServer(serverPort());
   log(`simple ${VERSION} listening on ${server.url} (pid ${process.pid})`);
 
-  const stop = (signal: string) => {
+  let stopping = false;
+  const stop = async (signal: string) => {
+    if (stopping) return;
+    stopping = true;
     log(`stopping (${signal})`);
-    server.stop(true);
+    await server.stop();
     process.exit(0);
   };
-  process.on("SIGTERM", () => stop("SIGTERM"));
-  process.on("SIGINT", () => stop("SIGINT"));
+  process.on("SIGTERM", () => void stop("SIGTERM"));
+  process.on("SIGINT", () => void stop("SIGINT"));
 }
 
 function log(message: string): void {

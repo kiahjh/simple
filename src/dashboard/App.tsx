@@ -72,7 +72,11 @@ function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
   return (
     <article className="card">
       <div className="thumbnail">
-        <span className="muted">No preview yet</span>
+        {s.state === "running" ? (
+          <Thumbnail udid={s.udid} name={s.name} />
+        ) : (
+          <span className="muted">{s.state === "starting" ? "Starting…" : "Stopping…"}</span>
+        )}
       </div>
       <div className="details">
         <div className="title">
@@ -88,6 +92,20 @@ function SimulatorCard({ simulator: s }: { simulator: Simulator }) {
         </div>
       </div>
     </article>
+  );
+}
+
+/** A live, low-frame-rate view of the simulator's screen. */
+function Thumbnail({ udid, name }: { udid: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span className="muted">No preview available</span>;
+  return (
+    <img
+      className="screen"
+      src={`/api/simulators/${udid}/thumbnail`}
+      alt={`${name}'s screen`}
+      onError={() => setFailed(true)}
+    />
   );
 }
 

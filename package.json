@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "serve-sim": "^0.1.49"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

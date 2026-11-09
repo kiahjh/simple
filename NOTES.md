@@ -113,7 +113,16 @@ Steps, each committed separately:
    `<data dir>/devices`; it's only read if it exists.
 2. ✅ The list on the dashboard: "Yours" and "Agents'" sections, cards for running simulators, a collapsed list
    of off ones, refreshing itself every 2 s by polling `GET /api/simulators` (no caching; each poll runs simctl).
-3. Live thumbnails: serve-sim streams through our server, with helpers running only while a dashboard is open
-   and stopped about a minute after the last one closes. Verifies streaming under Bun.
+3. ✅ Live thumbnails: `GET /api/simulators/:udid/thumbnail` streams MJPEG through our Bun server (works).
+   - serve-sim's raw stream is heavy: full-resolution frames (~200–400 KB), ~5 fps on a still screen (~1.9 MB/s)
+     and ~31 fps while moving (~8.5 MB/s). Thumbnails are re-streamed at most 5 fps, always the newest frame
+     (~0.9 MB/s measured).
+   - Frames are split by each part's Content-Length; serve-sim's JPEGs carry EXIF, so scanning for JPEG
+     markers isn't safe.
+   - Helpers start on the first thumbnail request (`serve-sim --detach`, run with Node, serve-sim's supported
+     runtime), stop 60 s after the last viewer disconnects (verified), stop when their simulator stops running
+     (checked on each list refresh), and stop with the server. Helpers someone else started are never stopped.
+   - serve-sim also serves `/foreground` (the app in front) and `/config` per helper; useful later.
+   - Before distributing a compiled binary: it must ship serve-sim and needs Node on the machine.
 4. Clicking a card opens serve-sim's full interactive view.
 5. Release prep: restart an outdated server automatically, then tag `v0.1.0-alpha.1` with a GitHub Release.
