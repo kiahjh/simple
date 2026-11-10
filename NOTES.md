@@ -204,6 +204,7 @@ screenshot|ui|tap|type|fold`), which reuses serve-sim helpers. Pure logic in `sr
 Duo capture in `test/fixtures/`).
 
 What we learned:
+
 - **Orientation.** The unfolded Duo uses its inner screen sideways ("landscape_left" in serve-sim's `/config`),
   on a natively portrait panel. serve-sim's `/ax` reports the app's size portrait-first (669×951) while element
   positions are in the sideways layout (951×669), so the screen size is reordered by orientation.
