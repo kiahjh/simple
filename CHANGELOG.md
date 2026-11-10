@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-11-10
+
+Agents can see and use their simulators: screenshot, ui, tap, type and fold.
+
 - Commands to see and use a simulator, acting on the one you hold (or `--sim ID-or-name`):
   - `simple screenshot` saves an upright screenshot of whichever screen is showing, including the iPhone Duo's
     sideways inner screen, and prints its path.
@@ -52,6 +56,7 @@ The first alpha: see what simulators are running, and watch them live.
 - `simple server status` and `simple server stop` show and stop the background server.
 - `simple --help` and `simple --version`.
 
-[Unreleased]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.2...HEAD
+[Unreleased]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.3...HEAD
+[0.1.0-alpha.3]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/kiahjh/simple/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/kiahjh/simple/releases/tag/v0.1.0-alpha.1
