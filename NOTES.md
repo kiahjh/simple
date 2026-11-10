@@ -238,6 +238,8 @@ What we learned:
 - "Show in Device Hub" for a simulator (see "Driving Device Hub").
 - Report serve-sim's port race on simultaneous `--detach` upstream.
 - Packaged installs (Homebrew or a single binary), which must bring serve-sim and need Node.
+- `simple` installs its own agent skill (e.g. `simple setup`), for people without Kiah's dotfiles, which link it
+  today.
 
 ## How to release
 
