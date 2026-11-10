@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+- The agent skill warns never to quit Device Hub, since that shuts down every running simulator.
+
 ## [0.1.0-alpha.3] - 2026-11-10
 
 Agents can see and use their simulators: screenshot, ui, tap, type and fold.

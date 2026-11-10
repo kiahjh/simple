@@ -11,6 +11,7 @@ minute while the simulator boots.
 To see and use it: `simple screenshot`, `simple ui` (what's on screen), `simple tap "<label>"`, `simple type
 "<text>"`, `simple fold open|closed`. They act on the simulator you hold.
 
-Don't use the user's simulators (listed under "You" by `simple`) unless they ask.
+Don't use the user's simulators (listed under "You" by `simple`) unless they ask. Never quit Device Hub: it
+shuts down every running simulator.
 
 Run `simple release` when you're done. See `simple --help` for the rest.
