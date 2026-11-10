@@ -196,6 +196,38 @@ Steps, each committed separately:
   patch redone. Not reported upstream: it's reasonable behavior on older Xcode versions.
 - Quitting the old Simulator.app shuts down the simulators it was showing.
 
+## 0.1.0-alpha.3: seeing and using simulators (Nov 9–10, 2026)
+
+`simple screenshot | ui | tap | type | fold`, acting on the caller's claimed simulator or `--sim`. Looking works on
+any simulator; changing one you don't hold needs `--force`. They go through the server (`/api/simulators/:udid/
+screenshot|ui|tap|type|fold`), which reuses serve-sim helpers. Pure logic in `src/device.ts` (tested with a real
+Duo capture in `test/fixtures/`).
+
+What we learned:
+- **Orientation.** The unfolded Duo uses its inner screen sideways ("landscape_left" in serve-sim's `/config`),
+  on a natively portrait panel. serve-sim's `/ax` reports the app's size portrait-first (669×951) while element
+  positions are in the sideways layout (951×669), so the screen size is reordered by orientation.
+- **Taps** go through `serve-sim tap X Y --raw` in the panel's native 0–1 coordinates; simple converts
+  (landscape_left: x' = y, y' = 1 − x). serve-sim's own conversion (without `--raw`) missed on the Duo.
+- **A fresh helper needs ~1 s to settle**: `/config` goes 0×0 → right size in portrait → actual orientation.
+  `Helpers` waits until it's stable before handing a helper out. Its `/config` sometimes omits `hingeDegrees`.
+- **Screenshots** use `simctl io screenshot`, which comes out upright. On the Duo the display must be named:
+  `--display=primary` (outer) or `primary-1` (inner); the default switches between them. Which screen is
+  showing: the hinge angle if reported, else the bigger stream is the inner one. The Duo is recognized by model.
+- **Tapping the folded Duo's outer screen crashes backboardd** (uncaught exception in
+  `SimulatorHID -[SimHIDVirtualService dispatchEvent:]`), every time, even after repairing input. Inner screen
+  and iPhones are fine. `simple tap` refuses on a folded Duo for now. Not yet reported to serve-sim; checking
+  whether serve-sim's own web view does the same would make a good report.
+- **Keyboard and Device Hub.** Xcode 27's Device Hub takes over keyboard input (`com.apple.coredevice.dtuhidd.
+  active` = 1 inside the simulator) for default-set simulators, even ones it isn't showing; typing via serve-sim
+  then does nothing while touches still work. `serve-sim repair-input` takes it back (restarts SpringBoard,
+  closes apps; the helper must be restarted after). `simple claim` does this right after booting. `simple type`
+  explains when Device Hub has the keyboard.
+- Freshly erased simulators show iOS's one-time keyboard tip ("Speed up your typing… Continue") over the
+  keyboard the first time a field is focused; it swallows typing until dismissed (`simple tap Continue`).
+
+## Ideas for later (not decided)
+
 - Install a missing iOS runtime on request (Xcode can download runtimes from the command line).
 - Device settings on claim, e.g. `--dark`, language, text size.
 - A warm spare for ~2 s claims (declined for now, see the alpha.2 plan).
