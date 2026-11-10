@@ -1,0 +1,58 @@
+[
+  {
+    "AXValue": null,
+    "AXLabel": "Gertrude Music",
+    "children": [
+      {
+        "AXUniqueId": null,
+        "AXValue": null,
+        "role_description": "text",
+        "children": [],
+        "frame": {
+          "height": 86,
+          "x": 247.66666666666666,
+          "y": 398.33333333333331,
+          "width": 451.66666666666663
+        },
+        "AXLabel": "Are you the parent or accountability partner? Gertrude Music is controlled by a separate Gertrude account, ideally managed by someone other than the person using this device.",
+        "enabled": true,
+        "type": "StaticText"
+      },
+      {
+        "type": "Button",
+        "AXLabel": "Yes, I’m the parent or partner",
+        "children": [],
+        "AXUniqueId": "btn-primary",
+        "enabled": true,
+        "frame": {
+          "height": 48.333333333333314,
+          "x": 247.66666666666666,
+          "y": 504.33333333333331,
+          "width": 456
+        },
+        "AXValue": null,
+        "role_description": "button"
+      },
+      {
+        "role_description": "button",
+        "children": [],
+        "AXValue": null,
+        "frame": {
+          "height": 48.333333333333371,
+          "width": 456,
+          "y": 564.66666666666663,
+          "x": 247.66666666666666
+        },
+        "type": "Button",
+        "enabled": true,
+        "AXLabel": "No, this device is mine",
+        "AXUniqueId": "btn-secondary"
+      }
+    ],
+    "enabled": true,
+    "frame": { "x": 0, "width": 669, "height": 951, "y": 0 },
+    "type": "Application",
+    "role_description": "application",
+    "AXUniqueId": null
+  }
+]

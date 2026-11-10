@@ -8,6 +8,9 @@ Get your own booted simulator with `simple claim [duo|ipad|iphone|"<model name>"
 use it with `xcodebuild -destination id=<ID>`, `xcrun simctl`, or the Xcode MCP. A new claim can take about a
 minute while the simulator boots.
 
+To see and use it: `simple screenshot`, `simple ui` (what's on screen), `simple tap "<label>"`, `simple type
+"<text>"`, `simple fold open|closed`. They act on the simulator you hold.
+
 Don't use the user's simulators (listed under "You" by `simple`) unless they ask.
 
 Run `simple release` when you're done. See `simple --help` for the rest.

@@ -22,6 +22,8 @@ export type HelpersOptions = {
   runServeSim?: (args: string[]) => Promise<string>;
   /** Whether someone has serve-sim's full interactive view open on this helper. */
   hasInteractiveViewers?: (helper: Helper) => Promise<boolean>;
+  /** Waits until a newly started helper knows the screen's size and orientation. */
+  waitUntilReady?: (helper: Helper) => Promise<void>;
   idleStopMs?: number;
 };
 
@@ -41,11 +43,13 @@ export class Helpers {
 
   private readonly runServeSim: (args: string[]) => Promise<string>;
   private readonly hasInteractiveViewers: (helper: Helper) => Promise<boolean>;
+  private readonly waitUntilReady: (helper: Helper) => Promise<void>;
   private readonly idleStopMs: number;
 
   constructor(options: HelpersOptions = {}) {
     this.runServeSim = options.runServeSim ?? serveSim;
     this.hasInteractiveViewers = options.hasInteractiveViewers ?? interactiveViewers;
+    this.waitUntilReady = options.waitUntilReady ?? untilScreenSettles;
     this.idleStopMs = options.idleStopMs ?? IDLE_STOP_MS;
   }
 
@@ -138,6 +142,7 @@ export class Helpers {
       ours: listed.running !== true,
       viewers: 0,
     };
+    await this.waitUntilReady(helper);
     this.helpers.set(simulator.udid, helper);
     return helper;
   }
@@ -164,6 +169,31 @@ export function helperPageUrl(helper: Helper): string {
 }
 
 /**
+ * A freshly started helper first reports a 0×0 screen, then the right size in portrait, and the actual
+ * orientation (e.g. the unfolded Duo's sideways inner screen) about a second later. Waits until its answer has
+ * stayed the same for a moment, or 5 seconds at most.
+ */
+async function untilScreenSettles(helper: Helper): Promise<void> {
+  const url = `http://127.0.0.1:${helper.port}/helper/${helper.udid}/config`;
+  const deadline = Date.now() + 5000;
+  let previous = "";
+  let sameSince = 0;
+  while (Date.now() < deadline) {
+    const config = await fetch(url, { signal: AbortSignal.timeout(2000) })
+      .then((res) => res.text())
+      .catch(() => "");
+    const known = config !== "" && !config.includes('"width":0');
+    if (known && config === previous) {
+      if (Date.now() - sameSince >= 600) return;
+    } else {
+      previous = config;
+      sameSince = Date.now();
+    }
+    await Bun.sleep(150);
+  }
+}
+
+/**
  * Whether serve-sim's full view is open on this helper. Its page holds a WebSocket for touch and keyboard input,
  * which serve-sim's diagnostics count; simple's thumbnails don't open one.
  */
@@ -185,7 +215,7 @@ const SERVE_SIM_BIN = (() => {
 })();
 
 /** Runs the serve-sim CLI with Node (its supported runtime) and returns what it printed. */
-async function serveSim(args: string[]): Promise<string> {
+export async function serveSim(args: string[]): Promise<string> {
   let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
   try {
     proc = Bun.spawn(["node", SERVE_SIM_BIN, ...args], { stdout: "pipe", stderr: "pipe" });

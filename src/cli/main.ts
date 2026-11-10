@@ -7,6 +7,7 @@ import { dashboardUrl, serverPort } from "../paths.ts";
 import { runServer } from "../server/main.ts";
 import { listSimulators } from "../simulators.ts";
 import { VERSION } from "../version.ts";
+import { fold, parsePoint, screenshot, tap, target, typeText, ui } from "./device-commands.ts";
 import { ensureServer, fetchHealth, stopServer } from "./server-control.ts";
 import { formatStatus } from "./status.ts";
 
@@ -18,6 +19,16 @@ Usage:
                                      Get a booted agent simulator and print its ID. MODEL is duo, ipad,
                                      iphone (the default), or a model name like "iPhone 18 Pro"
   simple release [ID] [--force]      Release your agent simulators (or one): they're shut down and erased
+
+  simple screenshot [--out FILE]     Save an upright screenshot and print its path
+  simple ui [--json]                 List what's on screen: buttons, text, fields, with their positions
+  simple tap LABEL [--index N]       Tap something by its label (or part of it); --index picks among matches
+  simple tap --at X,Y                Tap a point, in the screen's points (as shown by simple ui)
+  simple type TEXT                   Type into whatever has focus
+  simple fold open|book|closed|DEG   Fold an iPhone Duo
+
+  These act on the simulator you hold (from simple claim), or the one named with --sim ID-OR-NAME.
+  Changing a simulator you don't hold (tap, type, fold) needs --force.
   simple dashboard [--open]          Start the background server if needed and print the dashboard URL
   simple server status               Show whether the background server is running
   simple server stop                 Stop the background server
@@ -46,6 +57,10 @@ async function main(argv: string[]): Promise<number> {
       os: { type: "string" },
       owner: { type: "string" },
       force: { type: "boolean" },
+      sim: { type: "string" },
+      out: { type: "string" },
+      at: { type: "string" },
+      index: { type: "string" },
     },
     allowPositionals: true,
   });
@@ -70,6 +85,39 @@ async function main(argv: string[]): Promise<number> {
       const progress = (message: string) => console.error(message);
       const simulator = await claim({ model: rest[0], os: values.os, owner, log: progress });
       console.log(values.json ? JSON.stringify(simulator, null, 2) : simulator.udid);
+      return 0;
+    }
+    case "screenshot": {
+      const simulator = await target(owner, values, false);
+      console.log(await screenshot(port, simulator, values.out));
+      return 0;
+    }
+    case "ui": {
+      const simulator = await target(owner, values, false);
+      console.log(await ui(port, simulator, Boolean(values.json)));
+      return 0;
+    }
+    case "tap": {
+      const label = rest.join(" ") || undefined;
+      if (!label && !values.at)
+        throw new UsageError("Say what to tap: simple tap LABEL, or simple tap --at X,Y.");
+      const simulator = await target(owner, values, true);
+      const index = values.index === undefined ? undefined : Number(values.index);
+      const at = values.at ? parsePoint(values.at) : undefined;
+      console.log(await tap(port, simulator, { label, index, at }));
+      return 0;
+    }
+    case "type": {
+      const text = rest.join(" ");
+      if (!text) throw new UsageError("Say what to type: simple type TEXT.");
+      const simulator = await target(owner, values, true);
+      console.log(await typeText(port, simulator, text));
+      return 0;
+    }
+    case "fold": {
+      if (!rest[0]) throw new UsageError("Say how to fold: simple fold open|book|closed|DEGREES.");
+      const simulator = await target(owner, values, true);
+      console.log(await fold(port, simulator, rest[0]));
       return 0;
     }
     case "release": {

@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+- Commands to see and use a simulator, acting on the one you hold (or `--sim ID-or-name`):
+  - `simple screenshot` saves an upright screenshot of whichever screen is showing, including the iPhone Duo's
+    sideways inner screen, and prints its path.
+  - `simple ui` lists what's on screen (buttons, text, fields) with their positions; `--json` for scripts.
+  - `simple tap "<label>"` taps by label (exact, then partial; `--index` picks among matches), or `--at X,Y`.
+  - `simple type "<text>"` types into whatever has focus.
+  - `simple fold open|book|closed|DEGREES` folds an iPhone Duo.
+  - Changing a simulator you don't hold needs `--force`.
+- `simple claim` takes keyboard input back from Xcode 27's Device Hub, so typing works on agent simulators.
+- serve-sim no longer opens an old Xcode's Simulator app.
+- Known limitation: tapping a folded iPhone Duo's outer screen crashes the simulator's touch system, so
+  `simple tap` refuses until it's unfolded.
+
 ## [0.1.0-alpha.2] - 2026-11-09
 
 Agents get their own simulators: `simple claim` and `simple release`.

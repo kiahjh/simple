@@ -1,4 +1,5 @@
 import { resolveDevice } from "../catalog.ts";
+import { serveSim } from "../server/helpers.ts";
 import { type SimctlDevice, type SimctlList, simctl, simctlList } from "../simctl.ts";
 import { claimIsLive, listSimulators, type Simulator } from "../simulators.ts";
 import type { Owner } from "./owner.ts";
@@ -209,6 +210,38 @@ async function boot(udid: string): Promise<void> {
     if (!/current state: Booted/.test(error.message)) throw error;
   });
   await simctl(["bootstatus", udid, "-b"], 300_000);
+  await reclaimKeyboardInput(udid);
+}
+
+/**
+ * Xcode 27's Device Hub takes over keyboard input for the simulators it knows about, even ones it isn't showing,
+ * so typing through serve-sim does nothing (touches still work). serve-sim's `repair-input` takes it back by
+ * restarting the simulator's home screen, which closes its apps. That's free right after booting, before the
+ * agent has opened anything.
+ */
+async function reclaimKeyboardInput(udid: string): Promise<void> {
+  if (!(await deviceHubHasKeyboard(udid))) return;
+  await serveSim(["repair-input", "-d", udid]).catch(() => {});
+  // Wait for the home screen to come back.
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const services = await simctl(["spawn", udid, "launchctl", "list"]).catch(() => "");
+    if (/^\d+\s+\S+\s+com\.apple\.SpringBoard$/m.test(services)) break;
+    await Bun.sleep(500);
+  }
+  await Bun.sleep(2000);
+}
+
+/** Whether Device Hub has taken over the simulator's keyboard input. */
+export async function deviceHubHasKeyboard(udid: string): Promise<boolean> {
+  const out = await simctl([
+    "spawn",
+    udid,
+    "notifyutil",
+    "-g",
+    "com.apple.coredevice.dtuhidd.active",
+  ]).catch(() => "");
+  return /\s1\s*$/.test(out);
 }
 
 function devicesByUdid(list: SimctlList): Map<string, { device: SimctlDevice; runtime: string }> {

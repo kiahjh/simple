@@ -15,6 +15,8 @@ of what's running and who's using it.
 - `simple claim duo` (or `ipad`, `iphone`, or a model name) gives an agent its own booted simulator, named
   "Agent · …", and prints its ID for `xcodebuild`, `simctl` or the Xcode MCP. `simple release` hands it back,
   erased. Claims lapse after 2 hours without a `simple` command from their owner.
+- `simple screenshot`, `simple ui`, `simple tap "Get started"`, `simple type "hello"` and `simple fold open` let
+  an agent see and use its simulator, including the iPhone Duo's sideways inner screen.
 
 ## For agents
 

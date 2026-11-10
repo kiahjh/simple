@@ -39,7 +39,7 @@ function fakeServeSim() {
 describe("Helpers", () => {
   test("starts helpers one at a time, so they don't race for a port", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers({ runServeSim: fake.run });
+    const helpers = new Helpers({ runServeSim: fake.run, waitUntilReady: async () => {} });
     const [a, b] = await Promise.all([helpers.acquire(sim("A")), helpers.acquire(sim("B"))]);
     expect(fake.maxOverlap()).toBe(1);
     expect(new Set([a.port, b.port]).size).toBe(2);
@@ -47,7 +47,7 @@ describe("Helpers", () => {
 
   test("starts one helper per simulator, however many viewers ask at once", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers({ runServeSim: fake.run });
+    const helpers = new Helpers({ runServeSim: fake.run, waitUntilReady: async () => {} });
     await Promise.all([
       helpers.acquire(sim("A")),
       helpers.acquire(sim("A")),
@@ -60,6 +60,7 @@ describe("Helpers", () => {
     const fake = fakeServeSim();
     let failNext = true;
     const helpers = new Helpers({
+      waitUntilReady: async () => {},
       runServeSim: async (args) => {
         if (args.includes("--detach") && failNext) {
           failNext = false;
@@ -74,7 +75,7 @@ describe("Helpers", () => {
 
   test("stops helpers whose simulators stopped running", async () => {
     const fake = fakeServeSim();
-    const helpers = new Helpers({ runServeSim: fake.run });
+    const helpers = new Helpers({ runServeSim: fake.run, waitUntilReady: async () => {} });
     await helpers.acquire(sim("A"));
     await helpers.prune([sim("A", "off")]);
     expect(fake.calls.at(-1)).toEqual(["--kill", "A"]);
@@ -86,6 +87,7 @@ describe("Helpers", () => {
     const helpers = new Helpers({
       runServeSim: fake.run,
       hasInteractiveViewers: async () => fullViewOpen,
+      waitUntilReady: async () => {},
       idleStopMs: 20,
     });
     await helpers.acquire(sim("A"));

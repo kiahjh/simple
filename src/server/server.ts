@@ -4,6 +4,7 @@ import dashboard from "../dashboard/index.html";
 import { MJPEG_CONTENT_TYPE, readMjpegFrames, throttledMjpeg } from "../mjpeg.ts";
 import { listSimulators, type Simulator } from "../simulators.ts";
 import { VERSION } from "../version.ts";
+import { DeviceActions } from "./device-actions.ts";
 import { type Helper, Helpers, helperPageUrl, helperStreamUrl } from "./helpers.ts";
 import { log } from "./log.ts";
 
@@ -31,6 +32,20 @@ export function startServer(port: number) {
   // Fingerprint the code now, at startup: later edits to the files shouldn't change what this server reports.
   buildId();
   const helpers = new Helpers();
+  const device = new DeviceActions(helpers);
+
+  /** Runs an action on a running simulator, turning problems into JSON errors. */
+  const withRunning = async (udid: string, action: (s: Simulator) => Promise<Response>) => {
+    try {
+      const simulator = (await listSimulators()).find((s) => s.udid === udid);
+      if (!simulator) return errorResponse(404, "There's no simulator with that ID.");
+      if (simulator.state !== "running")
+        return errorResponse(409, `${simulator.name} isn't running.`);
+      return await action(simulator);
+    } catch (error) {
+      return errorResponse(500, error);
+    }
+  };
   // End lapsed claims and delete long-unused agent simulators, even when no agent runs simple for a while.
   const tidyTimer = setInterval(() => {
     tidyUp().catch((error) => log(`couldn't tidy agent simulators: ${String(error)}`));
@@ -53,6 +68,37 @@ export function startServer(port: number) {
         } catch (error) {
           return errorResponse(500, error);
         }
+      },
+      // Seeing and using a simulator: `simple screenshot`, `ui`, `tap`, `type` and `fold` call these.
+      "/api/simulators/:udid/screenshot": async (req) =>
+        withRunning(req.params.udid, async (s) => {
+          const png = await device.screenshot(s);
+          return new Response(png, {
+            headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+          });
+        }),
+      "/api/simulators/:udid/ui": async (req) =>
+        withRunning(req.params.udid, async (s) => Response.json(await device.contents(s))),
+      "/api/simulators/:udid/tap": {
+        POST: async (req) =>
+          withRunning(req.params.udid, async (s) =>
+            Response.json(await device.tap(s, await req.json())),
+          ),
+      },
+      "/api/simulators/:udid/type": {
+        POST: async (req) =>
+          withRunning(req.params.udid, async (s) => {
+            const { text } = (await req.json()) as { text: string };
+            await device.type(s, text);
+            return Response.json({ typed: text.length });
+          }),
+      },
+      "/api/simulators/:udid/fold": {
+        POST: async (req) =>
+          withRunning(req.params.udid, async (s) => {
+            const { pose } = (await req.json()) as { pose: string };
+            return Response.json({ degrees: await device.fold(s, pose) });
+          }),
       },
       // Opens serve-sim's full interactive view: start the simulator's helper if needed, then send the browser to it.
       "/sim/:udid": async (req) => {
