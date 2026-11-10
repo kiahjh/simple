@@ -183,7 +183,18 @@ Steps, each committed separately:
   48 s, because erasing makes the next boot a first boot. Kept as is for simplicity (Nov 9, 2026). Considered
   and declined for now: a warm, already-booted spare for ~2 s claims; skipping the erase (fast but leaks state).
 
-## Ideas for later (not decided)
+## serve-sim opens Simulator.app (patched, Nov 9 2026)
+
+- When serve-sim starts a helper for a simulator in Xcode's default device set, it runs `open -ga Simulator`
+  ("so the display pipeline is wired up"). On Xcode 27 there's no Simulator.app, so macOS opens an older Xcode's
+  (here 26.6), which shows windows for running simulators. Found by watching the system log for `open` while
+  repeating each step; only starting a helper triggered it.
+- Not needed for us: streaming, taps and typing all worked without it (trial, and re-checked after patching).
+  Rotation (`serve-sim rotate`) didn't seem to take effect without it; serve-sim's native code says rotation
+  needs Simulator.app running. Revisit if we add rotation.
+- We remove that one call with `bun patch` (`patches/serve-sim@0.1.49.patch`). Upgrading serve-sim needs the
+  patch redone. Not reported upstream: it's reasonable behavior on older Xcode versions.
+- Quitting the old Simulator.app shuts down the simulators it was showing.
 
 - Install a missing iOS runtime on request (Xcode can download runtimes from the command line).
 - Device settings on claim, e.g. `--dark`, language, text size.
