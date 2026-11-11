@@ -15,3 +15,6 @@ Don't use the user's simulators (listed under "You" by `simple`) unless they ask
 shuts down every running simulator.
 
 Run `simple release` when you're done. See `simple --help` for the rest.
+
+simple is still young. If it gets in your way (something fails, is confusing, or takes more steps or time than it
+should), tell the user what happened and suggest a fix to simple.
