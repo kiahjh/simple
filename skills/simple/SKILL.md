@@ -1,5 +1,4 @@
 ---
-
 name: simple
 description: Use whenever you need an iOS simulator, to build, run, test or look at an app. Gives you your own simulator so you never use the user's.
 ---
@@ -16,5 +15,9 @@ shuts down every running simulator.
 
 Run `simple release` when you're done. See `simple --help` for the rest.
 
-simple is still young. If it gets in your way (something fails, is confusing, or takes more steps or time than it
-should), tell the user what happened and suggest a fix to simple.
+simple is still young, and the user wants to hear how to make it better. If something got in your way (it failed,
+was confusing, or took more steps or time than it should), tell them what happened and suggest a fix to simple.
+Also suggest anything that would make simple more versatile, robust or convenient, especially if it would have
+saved you reaching for another tool (`xcrun simctl`, `xcodebuild`, the Xcode MCP, scripts of your own): say what
+you used it for and what simple command or option would have covered it. Keep each suggestion short and concrete.
+If nothing comes to mind, say nothing.
